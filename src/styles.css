@@ -1,0 +1,29 @@
+/*
+ * cellforge core styles. Theming via CSS custom properties; consumers override --cf-*.
+ * No CSS-in-JS. No Tailwind. Plain CSS Modules + variables.
+ */
+
+.cellforge-root {
+  --cf-color-bg: #ffffff;
+  --cf-color-fg: #1a1a1a;
+  --cf-color-border: #d0d7de;
+  --cf-color-muted: #6e7781;
+  --cf-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cf-font-size: 13px;
+
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  background: var(--cf-color-bg);
+  color: var(--cf-color-fg);
+  font-family: var(--cf-font-family);
+  font-size: var(--cf-font-size);
+  border: 1px solid var(--cf-color-border);
+}
+
+.cellforge-empty-state {
+  margin: auto;
+  color: var(--cf-color-muted);
+  font-style: italic;
+}

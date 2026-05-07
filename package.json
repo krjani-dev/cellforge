@@ -1,0 +1,135 @@
+{
+  "name": "cellforge",
+  "version": "0.0.1",
+  "description": "A formula-first React spreadsheet for serious workbooks. HyperFormula engine, lossless XLSX round-trip, formula-based conditional formatting, virtualized to 100K cells. TypeScript-native, MIT licensed.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./io/xlsx": {
+      "types": "./dist/io/xlsx/index.d.ts",
+      "import": "./dist/io/xlsx.js"
+    },
+    "./io/csv": {
+      "types": "./dist/io/csv/index.d.ts",
+      "import": "./dist/io/csv.js"
+    },
+    "./io/pdf": {
+      "types": "./dist/io/pdf/index.d.ts",
+      "import": "./dist/io/pdf.js"
+    },
+    "./migration/webix": {
+      "types": "./dist/migration/webix/index.d.ts",
+      "import": "./dist/migration/webix.js"
+    },
+    "./editors/date": {
+      "types": "./dist/editors/date/index.d.ts",
+      "import": "./dist/editors/date.js"
+    },
+    "./locales/fr": {
+      "types": "./dist/locales/fr/index.d.ts",
+      "import": "./dist/locales/fr.js"
+    }
+  },
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" \"stories/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,md}\" \"stories/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "size": "size-limit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.1.6",
+    "@storybook/addon-essentials": "^8.6.18",
+    "@storybook/blocks": "^8.6.18",
+    "@storybook/react": "^8.6.18",
+    "@storybook/react-vite": "^8.6.18",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "size-limit": "^11.1.6",
+    "storybook": "^8.4.7",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vite-plugin-dts": "^4.3.0",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "dev"
+  },
+  "keywords": [
+    "react",
+    "react-spreadsheet",
+    "spreadsheet",
+    "typescript",
+    "hyperformula",
+    "xlsx",
+    "excel",
+    "data-grid",
+    "formula",
+    "conditional-formatting",
+    "csv",
+    "pdf-export",
+    "open-source",
+    "mit-license"
+  ],
+  "homepage": "https://github.com/krjani-dev/cellforge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krjani-dev/cellforge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/krjani-dev/cellforge/issues"
+  }
+}
