@@ -1,17 +1,32 @@
 /*
  * cellforge core styles. Theming via CSS custom properties; consumers override --cf-*.
- * No CSS-in-JS. No Tailwind. Plain CSS Modules + variables.
+ * No CSS-in-JS. No Tailwind. Plain CSS + variables.
  */
+
+.cellforge-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
 
 .cellforge-root {
   --cf-color-bg: #ffffff;
   --cf-color-fg: #1a1a1a;
   --cf-color-border: #d0d7de;
+  --cf-color-border-strong: #afb8c1;
+  --cf-color-header-bg: #f6f8fa;
+  --cf-color-focus: #0969da;
   --cf-color-muted: #6e7781;
   --cf-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --cf-font-size: 13px;
+  --cf-header-h: 24px;
+  --cf-header-w: 48px;
+  --cf-scrollbar-y-w: 0px;
+  --cf-scrollbar-x-h: 0px;
 
-  display: flex;
+  display: grid;
+  grid-template-rows: var(--cf-header-h) 1fr;
+  grid-template-columns: var(--cf-header-w) 1fr;
   width: 100%;
   height: 100%;
   min-height: 200px;
@@ -20,10 +35,270 @@
   font-family: var(--cf-font-family);
   font-size: var(--cf-font-size);
   border: 1px solid var(--cf-color-border);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.cellforge-empty-state {
-  margin: auto;
+.cellforge-root *,
+.cellforge-root *::before,
+.cellforge-root *::after {
+  box-sizing: border-box;
+}
+
+/* ── Corner (top-left intersection of headers) ──────────────────────────── */
+
+.cellforge-corner {
+  grid-row: 1;
+  grid-column: 1;
+  background: var(--cf-color-header-bg);
+  border-right: 1px solid var(--cf-color-border);
+  border-bottom: 1px solid var(--cf-color-border);
+}
+
+/* Solid divider lines under the column-header strip and right of the
+   row-header strip. These live in the grid container itself so they
+   extend cleanly even when the strip is wider than its inner content
+   (e.g., scrolled past the last column / row). */
+.cellforge-root::before {
+  content: '';
+  grid-row: 1;
+  grid-column: 2;
+  align-self: end;
+  height: 1px;
+  background: var(--cf-color-border);
+  z-index: 1;
+}
+
+.cellforge-root::after {
+  content: '';
+  grid-row: 2;
+  grid-column: 1;
+  justify-self: end;
+  width: 1px;
+  background: var(--cf-color-border);
+  z-index: 1;
+}
+
+/* ── Column header strip (top, scrolls horizontally with cells) ─────────── */
+
+.cellforge-col-strip {
+  grid-row: 1;
+  grid-column: 2;
+  overflow: hidden;
+  background: var(--cf-color-header-bg);
+  margin-right: var(--cf-scrollbar-y-w);
+}
+
+.cellforge-col-strip-inner {
+  display: flex;
+  height: 100%;
+}
+
+.cellforge-col-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   color: var(--cf-color-muted);
-  font-style: italic;
+  font-weight: 600;
+  background: var(--cf-color-header-bg);
+  border-right: 1px solid var(--cf-color-border);
+  user-select: none;
+}
+
+/* ── Row header strip (left, scrolls vertically with cells) ─────────────── */
+
+.cellforge-row-strip {
+  grid-row: 2;
+  grid-column: 1;
+  overflow: hidden;
+  background: var(--cf-color-header-bg);
+  margin-bottom: var(--cf-scrollbar-x-h);
+}
+
+.cellforge-row-strip-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.cellforge-row-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: var(--cf-color-muted);
+  font-weight: 600;
+  background: var(--cf-color-header-bg);
+  border-bottom: 1px solid var(--cf-color-border);
+  user-select: none;
+}
+
+/* ── Cell viewport (react-window mounts here) ───────────────────────────── */
+
+.cellforge-cells {
+  grid-row: 2;
+  grid-column: 2;
+  overflow: hidden;
+  position: relative;
+  background: var(--cf-color-bg);
+  min-width: 0;
+  min-height: 0;
+}
+
+.cellforge-cells > div {
+  /* react-window's outer scroll container fills this cell */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cellforge-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--cf-color-bg);
+  color: var(--cf-color-fg);
+  border-right: 1px solid var(--cf-color-border);
+  border-bottom: 1px solid var(--cf-color-border);
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: cell;
+}
+
+.cellforge-cell-selected {
+  background: rgba(9, 105, 218, 0.08);
+}
+
+.cellforge-cell-anchor {
+  /* Inner ring so the anchor is visible without growing the cell box. */
+  box-shadow: inset 0 0 0 2px var(--cf-color-focus);
+}
+
+.cellforge-cell-editing {
+  padding: 0;
+  cursor: text;
+}
+
+.cellforge-editor-input {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: var(--cf-color-bg);
+  color: var(--cf-color-fg);
+  font: inherit;
+  outline: none;
+}
+
+.cellforge-col-header,
+.cellforge-row-header {
+  position: relative;
+  cursor: default;
+}
+
+.cellforge-col-header-active,
+.cellforge-row-header-active {
+  background: rgba(9, 105, 218, 0.18);
+  color: var(--cf-color-focus);
+}
+
+.cellforge-header-label {
+  pointer-events: none;
+}
+
+/* ── Resize handles ─────────────────────────────────────────────────────── */
+
+.cellforge-resize-handle {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+  user-select: none;
+  touch-action: none;
+}
+
+.cellforge-col-resize-handle {
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.cellforge-row-resize-handle {
+  left: 0;
+  bottom: -3px;
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+}
+
+.cellforge-resize-handle:hover,
+.cellforge-resize-handle:active {
+  background: var(--cf-color-focus);
+  opacity: 0.5;
+}
+
+/* ── Context menu ───────────────────────────────────────────────────────── */
+
+.cellforge-menu {
+  --cf-menu-bg: #ffffff;
+  --cf-menu-border: #d0d7de;
+  --cf-menu-fg: #1a1a1a;
+  --cf-menu-hover-bg: #f3f4f6;
+  --cf-menu-disabled-fg: #9ca3af;
+
+  z-index: 100;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--cf-menu-bg);
+  color: var(--cf-menu-fg);
+  font:
+    13px system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  border: 1px solid var(--cf-menu-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+  outline: none;
+}
+
+.cellforge-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.cellforge-menu-item[data-highlighted] {
+  background: var(--cf-menu-hover-bg);
+}
+
+.cellforge-menu-item[data-disabled] {
+  color: var(--cf-menu-disabled-fg);
+  pointer-events: none;
+}
+
+.cellforge-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--cf-menu-border);
+}
+
+.cellforge-root:focus {
+  outline: none;
+}
+
+.cellforge-root:focus-visible {
+  outline: 2px solid var(--cf-color-focus);
+  outline-offset: -2px;
 }

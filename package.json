@@ -1,7 +1,7 @@
 {
   "name": "cellforge",
   "version": "0.0.1",
-  "description": "A formula-first React spreadsheet for serious workbooks. HyperFormula engine, lossless XLSX round-trip, formula-based conditional formatting, virtualized to 100K cells. TypeScript-native, MIT licensed.",
+  "description": "Virtualized React spreadsheet grid with editing, selection, keyboard navigation, context menu, and row/column resizing. TypeScript-native, MIT licensed.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -67,6 +67,8 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
+    "@radix-ui/react-context-menu": "^2.2.16",
+    "react-window": "^2.2.7",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
@@ -113,14 +115,8 @@
     "react-spreadsheet",
     "spreadsheet",
     "typescript",
-    "hyperformula",
-    "xlsx",
-    "excel",
     "data-grid",
-    "formula",
-    "conditional-formatting",
-    "csv",
-    "pdf-export",
+    "virtualized",
     "open-source",
     "mit-license"
   ],
