@@ -35,10 +35,7 @@ export type MenuContentRef = ElementRef<typeof Menu.Content>;
 export const CellMenuContent = forwardRef<MenuContentRef>((_, ref) => {
   return (
     <Menu.Content ref={ref} className="cellforge-menu" onClick={(e) => e.stopPropagation()}>
-      <MenuItem
-        label="Clear values"
-        onSelect={() => useSpreadsheetStore.getState().clearCells()}
-      />
+      <MenuItem label="Clear values" onSelect={() => useSpreadsheetStore.getState().clearCells()} />
       <MenuSeparator />
       <MenuItem
         label="Insert row above"
@@ -112,10 +109,7 @@ export const RowMenuContent = forwardRef<MenuContentRef>((_, ref) => {
         }}
       />
       <MenuSeparator />
-      <MenuItem
-        label="Clear values"
-        onSelect={() => useSpreadsheetStore.getState().clearCells()}
-      />
+      <MenuItem label="Clear values" onSelect={() => useSpreadsheetStore.getState().clearCells()} />
     </Menu.Content>
   );
 });
@@ -145,10 +139,7 @@ export const ColumnMenuContent = forwardRef<MenuContentRef>((_, ref) => {
         }}
       />
       <MenuSeparator />
-      <MenuItem
-        label="Clear values"
-        onSelect={() => useSpreadsheetStore.getState().clearCells()}
-      />
+      <MenuItem label="Clear values" onSelect={() => useSpreadsheetStore.getState().clearCells()} />
     </Menu.Content>
   );
 });
@@ -156,10 +147,7 @@ export const ColumnMenuContent = forwardRef<MenuContentRef>((_, ref) => {
 export const CornerMenuContent = forwardRef<MenuContentRef>((_, ref) => {
   return (
     <Menu.Content ref={ref} className="cellforge-menu" onClick={(e) => e.stopPropagation()}>
-      <MenuItem
-        label="Select all"
-        onSelect={() => useSpreadsheetStore.getState().selectAll()}
-      />
+      <MenuItem label="Select all" onSelect={() => useSpreadsheetStore.getState().selectAll()} />
       <MenuItem
         label="Clear all values"
         onSelect={() => {

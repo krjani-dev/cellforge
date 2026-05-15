@@ -45,10 +45,9 @@ export function Spreadsheet({ className, initialData, rows, columns }: Spreadshe
   // Storybook controls and prop updates are reflected immediately.
   // 100/26 are the documented defaults (same values as resetWorkbook uses).
   useEffect(() => {
-    useSpreadsheetStore.getState().setDimensions(
-      Math.max(rows ?? 100, 1),
-      Math.max(columns ?? 26, 1),
-    );
+    useSpreadsheetStore
+      .getState()
+      .setDimensions(Math.max(rows ?? 100, 1), Math.max(columns ?? 26, 1));
   }, [rows, columns]);
 
   // Load initial data on mount, after dimensions have been applied above.

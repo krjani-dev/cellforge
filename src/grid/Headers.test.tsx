@@ -113,8 +113,8 @@ describe('header strip virtualization (browser-like dimensions)', () => {
     render(<ColWrapper scrollOffset={3 * DEFAULT_COL_W} />);
 
     expect(screen.queryByText('A')).not.toBeInTheDocument(); // col 0  – clipped before window
-    expect(screen.getByText('B')).toBeInTheDocument();       // col 1  – window start
-    expect(screen.getByText('H')).toBeInTheDocument();       // col 7  – window end
+    expect(screen.getByText('B')).toBeInTheDocument(); // col 1  – window start
+    expect(screen.getByText('H')).toBeInTheDocument(); // col 7  – window end
     expect(screen.queryByText('I')).not.toBeInTheDocument(); // col 8  – clipped after window
     expect(screen.queryByText('T')).not.toBeInTheDocument(); // col 19 – far past window
   });
@@ -132,10 +132,10 @@ describe('header strip virtualization (browser-like dimensions)', () => {
     restoreRO = installMeasuringRO(100, 3 * DEFAULT_ROW_H);
     render(<RowWrapper scrollOffset={3 * DEFAULT_ROW_H} />);
 
-    expect(screen.queryByText('1')).not.toBeInTheDocument();  // row 0  – clipped before window
-    expect(screen.getByText('2')).toBeInTheDocument();        // row 1  – window start
-    expect(screen.getByText('8')).toBeInTheDocument();        // row 7  – window end
-    expect(screen.queryByText('9')).not.toBeInTheDocument();  // row 8  – clipped after window
+    expect(screen.queryByText('1')).not.toBeInTheDocument(); // row 0  – clipped before window
+    expect(screen.getByText('2')).toBeInTheDocument(); // row 1  – window start
+    expect(screen.getByText('8')).toBeInTheDocument(); // row 7  – window end
+    expect(screen.queryByText('9')).not.toBeInTheDocument(); // row 8  – clipped after window
     expect(screen.queryByText('20')).not.toBeInTheDocument(); // row 19 – far past window
   });
 });

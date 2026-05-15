@@ -9,7 +9,11 @@ export function singleCellRange(row: number, col: number): Range {
   return { start: { row, col }, end: { row, col } };
 }
 
-export function deriveSelectionMode(range: Range, rowCount: number, columnCount: number): SelectionMode {
+export function deriveSelectionMode(
+  range: Range,
+  rowCount: number,
+  columnCount: number,
+): SelectionMode {
   const n = normalizeRange(range);
   const fullRows = n.start.col === 0 && n.end.col === columnCount - 1;
   const fullCols = n.start.row === 0 && n.end.row === rowCount - 1;
@@ -20,7 +24,11 @@ export function deriveSelectionMode(range: Range, rowCount: number, columnCount:
   return 'range';
 }
 
-export function shiftIndexMap<T>(map: Record<number, T>, at: number, delta: number): Record<number, T> {
+export function shiftIndexMap<T>(
+  map: Record<number, T>,
+  at: number,
+  delta: number,
+): Record<number, T> {
   const next: Record<number, T> = {};
   for (const [key, value] of Object.entries(map)) {
     const i = Number(key);

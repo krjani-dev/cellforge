@@ -274,7 +274,11 @@ export function Grid() {
 
       <Menu.Root>
         <Menu.Trigger asChild>
-          <ColumnHeaderStrip stripRef={colStripRef} scrollOffset={colScrollLeft} onContextMenu={handleColumnsContextMenu} />
+          <ColumnHeaderStrip
+            stripRef={colStripRef}
+            scrollOffset={colScrollLeft}
+            onContextMenu={handleColumnsContextMenu}
+          />
         </Menu.Trigger>
         <Menu.Portal>
           <ColumnMenuContent />
@@ -283,7 +287,11 @@ export function Grid() {
 
       <Menu.Root>
         <Menu.Trigger asChild>
-          <RowHeaderStrip stripRef={rowStripRef} scrollOffset={rowScrollTop} onContextMenu={handleRowsContextMenu} />
+          <RowHeaderStrip
+            stripRef={rowStripRef}
+            scrollOffset={rowScrollTop}
+            onContextMenu={handleRowsContextMenu}
+          />
         </Menu.Trigger>
         <Menu.Portal>
           <RowMenuContent />
