@@ -60,6 +60,7 @@
     "size": "size-limit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "release": "bash scripts/release.sh",
     "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
