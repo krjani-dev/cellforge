@@ -1,6 +1,8 @@
+import { useCallback, useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Spreadsheet } from '../src/index';
+import type { CellValue, SpreadsheetHandle } from '../src/index';
 
 const meta: Meta<typeof Spreadsheet> = {
   title: 'Components/Spreadsheet',
@@ -95,7 +97,7 @@ export const EmptyDefault: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 export default function App() {
   return (
@@ -128,7 +130,7 @@ export const DefaultFilledGrid: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 function colLabel(col: number): string {
   let label = '';
@@ -179,7 +181,7 @@ export const LargeGrid: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 function colLabel(col: number): string {
   let label = '';
@@ -238,7 +240,7 @@ export const WithInitialData: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 const data = [
   ['Region', 'Q1', 'Q2', 'Q3', 'Q4'],
@@ -284,7 +286,7 @@ export const WideText: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 const data = [
   ['Long descriptive label that exceeds the default column width', 'Short', 12345.678],
@@ -338,7 +340,7 @@ target first (standard Excel semantics) so the menu acts on what you pointed at.
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 const data = [
   ['A', 'B', 'C', 'D'],
@@ -378,7 +380,7 @@ export const TallRow: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 export default function App() {
   return (
@@ -395,6 +397,295 @@ export default function App() {
       <Spreadsheet {...args} />
     </div>
   ),
+};
+
+function OnDataChangeStory() {
+  const [snapshot, setSnapshot] = useState<CellValue[][]>([]);
+  const [changeCount, setChangeCount] = useState(0);
+  const handleChange = useCallback((data: CellValue[][]) => {
+    setSnapshot(data);
+    setChangeCount((n) => n + 1);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <Spreadsheet
+          rows={5}
+          columns={4}
+          initialData={[
+            ['Product', 'Units', 'Price'],
+            ['Widget', 120, 9.99],
+            ['Gadget', 85, 24.99],
+          ]}
+          onDataChange={handleChange}
+        />
+      </div>
+      <div style={{ flexShrink: 0, borderTop: '1px solid #d0d7de' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '5px 12px',
+            background: '#f6f8fa',
+            borderBottom: '1px solid #d0d7de',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily: 'system-ui, sans-serif',
+              color: '#57606a',
+              fontWeight: 600,
+            }}
+          >
+            onDataChange
+          </span>
+          {changeCount > 0 && (
+            <span
+              style={{
+                background: '#0969da',
+                color: '#fff',
+                borderRadius: 10,
+                padding: '1px 7px',
+                fontSize: 10,
+                fontWeight: 600,
+                fontFamily: 'system-ui, sans-serif',
+              }}
+            >
+              {changeCount} {changeCount === 1 ? 'change' : 'changes'}
+            </span>
+          )}
+        </div>
+        <pre
+          style={{
+            margin: 0,
+            padding: '10px 12px',
+            background: '#f6f8fa',
+            color: '#24292f',
+            fontSize: 12,
+            fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace',
+            overflowY: 'auto',
+            maxHeight: 150,
+          }}
+        >
+          {snapshot.length === 0
+            ? '// Edit a cell to see the live snapshot'
+            : JSON.stringify(snapshot, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function GetDataRefStory() {
+  const ref = useRef<SpreadsheetHandle>(null);
+  const [snapshot, setSnapshot] = useState<CellValue[][] | null>(null);
+  const [snapshotTime, setSnapshotTime] = useState<string | null>(null);
+  const handleSnapshot = useCallback(() => {
+    setSnapshot(ref.current?.getData() ?? null);
+    setSnapshotTime(new Date().toLocaleTimeString());
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 12px',
+          background: '#fff',
+          borderBottom: '1px solid #d0d7de',
+        }}
+      >
+        <button
+          onClick={handleSnapshot}
+          style={{
+            padding: '5px 12px',
+            background: '#fff',
+            border: '1px solid #d0d7de',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#24292f',
+            fontFamily: 'system-ui, sans-serif',
+          }}
+        >
+          Snapshot
+        </button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <Spreadsheet
+          ref={ref}
+          rows={5}
+          columns={4}
+          initialData={[
+            ['Name', 'Q1', 'Q2'],
+            ['Alice', 420, 510],
+            ['Bob', 380, 430],
+          ]}
+        />
+      </div>
+      {snapshot && (
+        <div style={{ flexShrink: 0, borderTop: '1px solid #d0d7de' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '5px 12px',
+              background: '#f6f8fa',
+              borderBottom: '1px solid #d0d7de',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: 'system-ui, sans-serif',
+                color: '#57606a',
+                fontWeight: 600,
+              }}
+            >
+              getData() result
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: 'system-ui, sans-serif',
+                color: '#8c959f',
+              }}
+            >
+              taken at {snapshotTime}
+            </span>
+          </div>
+          <pre
+            style={{
+              margin: 0,
+              padding: '10px 12px',
+              background: '#f6f8fa',
+              color: '#24292f',
+              fontSize: 12,
+              fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace',
+              overflowY: 'auto',
+              maxHeight: 150,
+            }}
+          >
+            {JSON.stringify(snapshot, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export const OnDataChange: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+The \`onDataChange\` prop fires with a dense 2-D snapshot whenever cell data
+changes — edits, paste, clear, or row/column insert/delete. Selection and
+dimension changes do **not** trigger it.
+
+The panel below the grid reflects the live snapshot. Use it to drive
+downstream state (form validation, server sync, preview rendering, etc.).
+        `,
+      },
+      source: {
+        code: `import { useState } from 'react';
+import { Spreadsheet } from 'cellforge';
+import type { CellValue } from 'cellforge';
+import 'cellforge/styles.css';
+
+const initial = [
+  ['Product', 'Units', 'Price'],
+  ['Widget',     120,   9.99],
+  ['Gadget',      85,  24.99],
+];
+
+export default function App() {
+  const [snapshot, setSnapshot] = useState<CellValue[][]>([]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ flex: 1 }}>
+        <Spreadsheet
+          rows={5}
+          columns={4}
+          initialData={initial}
+          onDataChange={setSnapshot}
+        />
+      </div>
+      <pre style={{ margin: 0, padding: 12, background: '#f5f5f5', fontSize: 12, overflowY: 'auto', maxHeight: 160 }}>
+        {JSON.stringify(snapshot, null, 2)}
+      </pre>
+    </div>
+  );
+}`,
+      },
+    },
+  },
+  render: () => <OnDataChangeStory />,
+};
+
+export const GetDataRef: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: `
+The \`ref\` prop exposes an imperative handle with \`getData()\`, which returns
+a dense 2-D snapshot on demand — useful for form submission, export buttons,
+or any case where you want to pull data at a specific moment rather than
+push on every change.
+
+Click **Snapshot** to read the current grid state without subscribing to
+every keystroke.
+        `,
+      },
+      source: {
+        code: `import { useRef, useState } from 'react';
+import { Spreadsheet } from 'cellforge';
+import type { SpreadsheetHandle, CellValue } from 'cellforge';
+import 'cellforge/styles.css';
+
+export default function App() {
+  const ref = useRef<SpreadsheetHandle>(null);
+  const [snapshot, setSnapshot] = useState<CellValue[][] | null>(null);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ padding: '8px 12px', background: '#fff', borderBottom: '1px solid #e0e0e0' }}>
+        <button onClick={() => setSnapshot(ref.current?.getData() ?? null)}>
+          Snapshot
+        </button>
+      </div>
+      <div style={{ flex: 1 }}>
+        <Spreadsheet
+          ref={ref}
+          rows={5}
+          columns={4}
+          initialData={[
+            ['Name',  'Q1',  'Q2'],
+            ['Alice',  420,   510],
+            ['Bob',    380,   430],
+          ]}
+        />
+      </div>
+      {snapshot && (
+        <pre style={{ margin: 0, padding: 12, background: '#f5f5f5', fontSize: 12, overflowY: 'auto', maxHeight: 160 }}>
+          {JSON.stringify(snapshot, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}`,
+      },
+    },
+  },
+  render: () => <GetDataRefStory />,
 };
 
 export const SmallEmbedded: Story = {
@@ -421,7 +712,7 @@ export const SmallEmbedded: Story = {
       },
       source: {
         code: `import { Spreadsheet } from 'cellforge';
-import 'cellforge/styles';
+import 'cellforge/styles.css';
 
 const data = [
   ['Name', 'Score'],

@@ -63,7 +63,7 @@ export const ColumnHeaderStrip = forwardRef<
 
   return (
     <div ref={setRef} className="cellforge-col-strip" {...props}>
-      <div className="cellforge-col-strip-inner" style={{ width: totalWidth }}>
+      <div className="cellforge-col-strip-inner" style={{ width: totalWidth }} role="row">
         {leadingWidth > 0 && <div style={{ width: leadingWidth, flexShrink: 0 }} aria-hidden />}
         {headers.map((h) => (
           <ColumnHeader
@@ -108,6 +108,8 @@ function ColumnHeader({
       onMouseDown={(event) => {
         if (event.button === 0) {
           event.preventDefault();
+          const store = useSpreadsheetStore.getState();
+          if (store.editing) store.commitEditing();
           onSelect(index);
         }
       }}
@@ -174,13 +176,9 @@ export const RowHeaderStrip = forwardRef<
       <div className="cellforge-row-strip-inner" style={{ height: totalHeight }}>
         {leadingHeight > 0 && <div style={{ height: leadingHeight, flexShrink: 0 }} aria-hidden />}
         {headers.map((h) => (
-          <RowHeader
-            key={h.index}
-            index={h.index}
-            height={h.height}
-            label={h.label}
-            onSelect={selectRow}
-          />
+          <div key={h.index} role="row" aria-rowindex={h.index + 1}>
+            <RowHeader index={h.index} height={h.height} label={h.label} onSelect={selectRow} />
+          </div>
         ))}
       </div>
     </div>
@@ -216,6 +214,8 @@ function RowHeader({
       onMouseDown={(event) => {
         if (event.button === 0) {
           event.preventDefault();
+          const store = useSpreadsheetStore.getState();
+          if (store.editing) store.commitEditing();
           onSelect(index);
         }
       }}

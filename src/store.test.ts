@@ -216,12 +216,15 @@ describe('replaceData', () => {
     expect(Object.keys(cells).sort()).toEqual(['A1', 'A2', 'B2', 'C2', 'D2']);
   });
 
-  it('grows dimensions if input exceeds current counts', () => {
+  it('does not grow dimensions beyond the current bounds', () => {
     useSpreadsheetStore.getState().setDimensions(10, 5);
     useSpreadsheetStore.getState().replaceData([
-      ['a', 'b', 'c', 'd', 'e', 'f'], // 6 cols
+      ['a', 'b', 'c', 'd', 'e', 'f'], // 6 cols — col 5 (index) is out of bounds
     ]);
-    expect(useSpreadsheetStore.getState().columnCount).toBeGreaterThanOrEqual(6);
+    // columnCount must stay at 5; only the first 5 columns are loaded
+    expect(useSpreadsheetStore.getState().columnCount).toBe(5);
+    expect(useSpreadsheetStore.getState().cells['E1']).toEqual({ v: 'e' });
+    expect(useSpreadsheetStore.getState().cells['F1']).toBeUndefined();
   });
 
   it('does not shrink dimensions below current counts', () => {
@@ -652,12 +655,40 @@ describe('moveAnchor', () => {
     expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 2 });
   });
 
-  it('dataEdgeRight from a non-empty cell with empty neighbor skips to next non-empty', () => {
+  it('dataEdgeRight from a non-empty cell with empty neighbor jumps to the grid edge', () => {
     const store = useSpreadsheetStore.getState();
     store.replaceData([['a', null, null, null, 'e']]);
     store.selectCell(0, 0);
     store.moveAnchor('dataEdgeRight');
-    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 4 });
+    // Excel behaviour: non-empty + empty neighbour → jump to the rightmost column.
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 25 });
+  });
+
+  it('dataEdgeLeft from a non-empty cell with empty neighbor jumps to the grid edge', () => {
+    const store = useSpreadsheetStore.getState();
+    store.replaceData([['e', null, null, null, 'a']]);
+    store.selectCell(0, 4);
+    store.moveAnchor('dataEdgeLeft');
+    // non-empty + empty neighbour (left) → jump to column 0
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 0 });
+  });
+
+  it('dataEdgeDown from a non-empty cell with empty neighbor jumps to the grid edge', () => {
+    const store = useSpreadsheetStore.getState();
+    store.replaceData([['a'], [null], [null], [null], ['e']]);
+    store.selectCell(0, 0);
+    store.moveAnchor('dataEdgeDown');
+    // non-empty + empty neighbour (below) → jump to last row
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 99, col: 0 });
+  });
+
+  it('dataEdgeUp from a non-empty cell with empty neighbor jumps to the grid edge', () => {
+    const store = useSpreadsheetStore.getState();
+    store.replaceData([['e'], [null], [null], [null], ['a']]);
+    store.selectCell(4, 0);
+    store.moveAnchor('dataEdgeUp');
+    // non-empty + empty neighbour (above) → jump to row 0
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 0 });
   });
 
   it('dataEdgeRight from an empty cell skips to first non-empty', () => {

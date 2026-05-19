@@ -6,4 +6,5 @@
 // entries — see vite.config.ts and package.json `exports`.
 
 export { Spreadsheet } from './Spreadsheet';
-export type { SpreadsheetProps } from './Spreadsheet';
+export type { SpreadsheetProps, SpreadsheetHandle } from './Spreadsheet';
+export type { CellValue } from './store';

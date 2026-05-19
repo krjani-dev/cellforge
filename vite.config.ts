@@ -30,7 +30,16 @@ export default defineConfig({
     },
     sourcemap: true,
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'react-window',
+        'zustand',
+        'zustand/react/shallow',
+        'zustand/vanilla',
+        '@radix-ui/react-context-menu',
+      ],
       output: {
         preserveModules: false,
         entryFileNames: '[name].js',

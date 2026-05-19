@@ -110,29 +110,35 @@ export function Grid() {
     syncScrollbarGutters();
   }, [columnCount, colWidths, rowCount, rowHeights, syncScrollbarGutters]);
 
+  const activeCell = useSpreadsheetStore((s) => {
+    const range = s.selection.ranges[s.selection.ranges.length - 1];
+    return range?.end ?? s.selection.anchor;
+  });
   useEffect(() => {
-    const sync = () => {
-      const api = gridRef.current as GridImperativeAPI | null;
-      const el = api?.element ?? null;
-      if (!el) return;
-      syncHeaderScroll();
-      syncScrollbarGutters();
-    };
+    gridRef.current?.scrollToCell({
+      rowIndex: activeCell.row,
+      columnIndex: activeCell.col,
+      rowAlign: 'auto',
+      columnAlign: 'auto',
+    });
+  }, [activeCell.row, activeCell.col, gridRef]);
+
+  useEffect(() => {
     const api = gridRef.current as GridImperativeAPI | null;
     const el = api?.element ?? null;
     if (!el) return;
-    sync();
+    syncHeaderScroll();
+    syncScrollbarGutters();
     const resizeObserver =
       typeof ResizeObserver === 'undefined'
         ? null
         : new ResizeObserver(() => {
-            sync();
+            syncHeaderScroll();
+            syncScrollbarGutters();
           });
     resizeObserver?.observe(el);
-    el.addEventListener('scroll', sync, { passive: true });
     return () => {
       resizeObserver?.disconnect();
-      el.removeEventListener('scroll', sync);
     };
   }, [gridRef, syncHeaderScroll, syncScrollbarGutters]);
 
@@ -150,6 +156,8 @@ export function Grid() {
       if (event.button !== 0) return;
       const cell = locateCellFromEvent(event);
       if (!cell) return;
+      const store = useSpreadsheetStore.getState();
+      if (store.editing) store.commitEditing();
       if (event.shiftKey) {
         extendSelectionTo(cell.row, cell.col);
       } else if (event.ctrlKey || event.metaKey) {
@@ -185,6 +193,8 @@ export function Grid() {
     (event: MouseEvent<HTMLDivElement>) => {
       const cell = locateCellFromEvent(event);
       if (!cell) return;
+      const store = useSpreadsheetStore.getState();
+      if (store.editing) store.commitEditing();
       startEditing(cell.row, cell.col);
     },
     [startEditing],
@@ -196,6 +206,7 @@ export function Grid() {
       const cell = locateCellFromEvent(event);
       if (!cell) return;
       const state = useSpreadsheetStore.getState();
+      if (state.editing) state.commitEditing();
       const inSelection = state.selection.ranges.some((range) =>
         rangeContains(range, cell.row, cell.col),
       );
@@ -210,6 +221,8 @@ export function Grid() {
     (event: MouseEvent<HTMLDivElement>) => {
       const row = readDataAttr(event, 'data-row');
       if (row === null) return;
+      const store = useSpreadsheetStore.getState();
+      if (store.editing) store.commitEditing();
       selectRow(row);
     },
     [selectRow],
@@ -219,6 +232,8 @@ export function Grid() {
     (event: MouseEvent<HTMLDivElement>) => {
       const col = readDataAttr(event, 'data-col');
       if (col === null) return;
+      const store = useSpreadsheetStore.getState();
+      if (store.editing) store.commitEditing();
       selectColumn(col);
     },
     [selectColumn],
@@ -228,6 +243,8 @@ export function Grid() {
     (event: MouseEvent<HTMLDivElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
+      const store = useSpreadsheetStore.getState();
+      if (store.editing) store.commitEditing();
       selectAll();
       focusRoot();
     },
@@ -235,6 +252,8 @@ export function Grid() {
   );
 
   const handleCornerContextMenu = useCallback(() => {
+    const store = useSpreadsheetStore.getState();
+    if (store.editing) store.commitEditing();
     selectAll();
   }, [selectAll]);
 
@@ -246,9 +265,12 @@ export function Grid() {
       className="cellforge-root"
       role="grid"
       aria-label="Spreadsheet"
+      aria-rowcount={rowCount}
+      aria-colcount={columnCount}
+      aria-multiselectable="true"
       data-testid="cellforge-spreadsheet"
       tabIndex={0}
-      onKeyDown={handleKeyDown}
+      onKeyDown={(e) => handleKeyDown(e, focusRoot)}
       style={
         {
           '--cf-header-h': `${HEADER_HEIGHT}px`,

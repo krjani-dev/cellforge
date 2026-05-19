@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { columnLabel } from '../store';
 import { useSpreadsheetStore } from '../store';
@@ -11,12 +11,20 @@ import {
 
 export function ColumnResizeHandle({ index }: { index: number }) {
   const setColWidth = useSpreadsheetStore((s) => s.setColWidth);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      dragCleanupRef.current?.();
+    },
+    [],
+  );
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
+      dragCleanupRef.current?.();
       const target = event.currentTarget;
       const startX = event.clientX;
       const startWidth = useSpreadsheetStore.getState().colWidths[index] ?? DEFAULT_COLUMN_WIDTH;
@@ -43,10 +51,17 @@ export function ColumnResizeHandle({ index }: { index: number }) {
         target.removeEventListener('pointermove', move);
         target.removeEventListener('pointerup', up);
         target.removeEventListener('pointercancel', up);
+        dragCleanupRef.current = null;
       };
       target.addEventListener('pointermove', move);
       target.addEventListener('pointerup', up);
       target.addEventListener('pointercancel', up);
+      dragCleanupRef.current = () => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        target.removeEventListener('pointermove', move);
+        target.removeEventListener('pointerup', up);
+        target.removeEventListener('pointercancel', up);
+      };
     },
     [index, setColWidth],
   );
@@ -76,12 +91,20 @@ export function ColumnResizeHandle({ index }: { index: number }) {
 
 export function RowResizeHandle({ index }: { index: number }) {
   const setRowHeight = useSpreadsheetStore((s) => s.setRowHeight);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      dragCleanupRef.current?.();
+    },
+    [],
+  );
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
+      dragCleanupRef.current?.();
       const target = event.currentTarget;
       const startY = event.clientY;
       const startHeight = useSpreadsheetStore.getState().rowHeights[index] ?? DEFAULT_ROW_HEIGHT;
@@ -108,10 +131,17 @@ export function RowResizeHandle({ index }: { index: number }) {
         target.removeEventListener('pointermove', move);
         target.removeEventListener('pointerup', up);
         target.removeEventListener('pointercancel', up);
+        dragCleanupRef.current = null;
       };
       target.addEventListener('pointermove', move);
       target.addEventListener('pointerup', up);
       target.addEventListener('pointercancel', up);
+      dragCleanupRef.current = () => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        target.removeEventListener('pointermove', move);
+        target.removeEventListener('pointerup', up);
+        target.removeEventListener('pointercancel', up);
+      };
     },
     [index, setRowHeight],
   );

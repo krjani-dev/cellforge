@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, within, cleanup, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createRef } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Spreadsheet } from './index';
+import type { SpreadsheetHandle } from './index';
 import { useSpreadsheetStore } from './store';
 
 function resetStore() {
@@ -82,6 +84,30 @@ describe('Spreadsheet (scaffold integration)', () => {
     expect(useSpreadsheetStore.getState().cells['B2']).toEqual({ v: 1200 });
   });
 
+  it('initialData does not expand the grid beyond the rows/columns cap', () => {
+    // rows={2} columns={2} but initialData has 4 rows and 4 columns
+    render(
+      <Spreadsheet
+        rows={2}
+        columns={2}
+        initialData={[
+          ['A', 'B', 'C', 'D'],
+          ['E', 'F', 'G', 'H'],
+          ['I', 'J', 'K', 'L'],
+          ['M', 'N', 'O', 'P'],
+        ]}
+      />,
+    );
+    const state = useSpreadsheetStore.getState();
+    expect(state.rowCount).toBe(2);
+    expect(state.columnCount).toBe(2);
+    // Only the 2×2 intersection should be loaded
+    expect(state.cells['A1']).toEqual({ v: 'A' });
+    expect(state.cells['B2']).toEqual({ v: 'F' });
+    expect(state.cells['C1']).toBeUndefined();
+    expect(state.cells['A3']).toBeUndefined();
+  });
+
   it('forwards a custom className to the outer shell', () => {
     const { container } = render(<Spreadsheet className="my-shell" />);
     expect(container.querySelector('.cellforge-shell.my-shell')).not.toBeNull();
@@ -108,6 +134,70 @@ describe('Spreadsheet (scaffold integration)', () => {
     expect(useSpreadsheetStore.getState().cells).toEqual({});
     expect(useSpreadsheetStore.getState().colWidths).toEqual({});
     expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 0 });
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// getData() ref API
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('SpreadsheetHandle.getData()', () => {
+  it('returns a dense 2D array matching initialData', () => {
+    const ref = createRef<SpreadsheetHandle>();
+    render(
+      <Spreadsheet
+        ref={ref}
+        rows={3}
+        columns={3}
+        initialData={[
+          [1, 2, 3],
+          [4, 5, 6],
+        ]}
+      />,
+    );
+    const data = ref.current!.getData();
+    expect(data).toHaveLength(3);
+    expect(data[0]).toEqual([1, 2, 3]);
+    expect(data[1]).toEqual([4, 5, 6]);
+    expect(data[2]).toEqual([null, null, null]);
+  });
+
+  it('reflects cell edits applied after mount', () => {
+    const ref = createRef<SpreadsheetHandle>();
+    render(<Spreadsheet ref={ref} rows={2} columns={2} />);
+    act(() => useSpreadsheetStore.getState().setCellValue(0, 0, 'hello'));
+    expect(ref.current!.getData()[0]![0]).toBe('hello');
+  });
+
+  it('includes an in-progress edit after the editor input loses focus', () => {
+    const ref = createRef<SpreadsheetHandle>();
+    render(<Spreadsheet ref={ref} rows={2} columns={2} />);
+    act(() => useSpreadsheetStore.getState().startEditing(0, 0, 'typed'));
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input')!;
+    fireEvent.blur(input);
+    expect(ref.current!.getData()[0]![0]).toBe('typed');
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// onDataChange callback
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('onDataChange', () => {
+  it('is called when a cell value changes', () => {
+    const onChange = vi.fn();
+    render(<Spreadsheet rows={2} columns={2} onDataChange={onChange} />);
+    act(() => useSpreadsheetStore.getState().setCellValue(0, 0, 42));
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls[onChange.mock.calls.length - 1]![0] as unknown[][];
+    expect(last[0]![0]).toBe(42);
+  });
+
+  it('is not called when only selection changes', () => {
+    const onChange = vi.fn();
+    render(<Spreadsheet rows={2} columns={2} onDataChange={onChange} />);
+    act(() => useSpreadsheetStore.getState().selectCell(1, 1));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 
@@ -280,6 +370,70 @@ describe('cell editor', () => {
     expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 5 });
     expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 1 });
   });
+
+  it('Tab returns focus to the grid root after closing the editor', () => {
+    render(<Spreadsheet />);
+    const root = getGridRoot();
+    root.focus();
+    fireEvent.keyDown(root, { key: 'x' });
+    fireEvent.keyDown(root, { key: 'Tab' });
+    expect(root).toHaveFocus();
+  });
+
+  it('Enter returns focus to the grid root after closing the editor', () => {
+    render(<Spreadsheet />);
+    const root = getGridRoot();
+    root.focus();
+    fireEvent.keyDown(root, { key: 'x' });
+    fireEvent.keyDown(root, { key: 'Enter' });
+    expect(root).toHaveFocus();
+  });
+
+  it('Escape returns focus to the grid root after cancelling the editor', () => {
+    render(<Spreadsheet />);
+    const root = getGridRoot();
+    root.focus();
+    fireEvent.keyDown(root, { key: 'F2' });
+    fireEvent.keyDown(root, { key: 'Escape' });
+    expect(root).toHaveFocus();
+  });
+
+  it('clicking another cell while editing commits the current editor', () => {
+    render(<Spreadsheet />);
+    // Open editor on A1 and type a value.
+    fireEvent.keyDown(getGridRoot(), { key: 'h' });
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    fireEvent.change(input!, { target: { value: 'hello' } });
+    // Click B1 (row 0, col 1).
+    const b1 = firstCell(0, 1);
+    expect(b1).not.toBeNull();
+    fireEvent.mouseDown(b1!);
+    expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'hello' });
+    expect(useSpreadsheetStore.getState().editing).toBeNull();
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 1 });
+  });
+
+  it('clicking a column header while editing commits the current editor', () => {
+    render(<Spreadsheet />);
+    fireEvent.keyDown(getGridRoot(), { key: 'x' });
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    fireEvent.change(input!, { target: { value: 'col-test' } });
+    const colHeader = screen.getAllByRole('columnheader')[2]!;
+    fireEvent.mouseDown(colHeader);
+    expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'col-test' });
+    expect(useSpreadsheetStore.getState().editing).toBeNull();
+  });
+
+  it('clicking a row header while editing commits the current editor', () => {
+    render(<Spreadsheet />);
+    fireEvent.keyDown(getGridRoot(), { key: 'y' });
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    fireEvent.change(input!, { target: { value: 'row-test' } });
+    const rowHeader = screen.getAllByRole('rowheader')[3]!;
+    fireEvent.mouseDown(rowHeader);
+    expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'row-test' });
+    expect(useSpreadsheetStore.getState().editing).toBeNull();
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -435,6 +589,23 @@ describe('context menu items', () => {
     expect(screen.getByRole('menuitem', { name: 'Insert column right' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete column' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Clear values' })).toBeInTheDocument();
+  });
+
+  it('menu closes after selecting an action', async () => {
+    render(<Spreadsheet initialData={[['val']]} />);
+    const cell = firstCell(0, 0);
+    await act(async () => {
+      fireEvent.contextMenu(cell!);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: 'Clear values' })).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Clear values' }));
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: 'Clear values' })).not.toBeInTheDocument();
+    });
   });
 
   it('corner context menu contains all expected actions', async () => {

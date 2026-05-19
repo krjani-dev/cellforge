@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useSpreadsheetStore } from '../store';
 import { cellAddress, rangeContains } from '../store';
 
@@ -16,18 +17,13 @@ export function Cell({
   style: CSSProperties;
   ariaAttributes: { 'aria-colindex': number; role: 'gridcell' };
 } & CellExtras) {
-  const value = useSpreadsheetStore((state) => state.cells[cellAddress(rowIndex, columnIndex)]?.v);
-
-  const isAnchor = useSpreadsheetStore(
-    (state) =>
-      state.selection.anchor.row === rowIndex && state.selection.anchor.col === columnIndex,
-  );
-  const isSelected = useSpreadsheetStore((state) =>
-    state.selection.ranges.some((range) => rangeContains(range, rowIndex, columnIndex)),
-  );
-  const isEditing = useSpreadsheetStore(
-    (state) =>
-      state.editing !== null && state.editing.row === rowIndex && state.editing.col === columnIndex,
+  const { value, isAnchor, isSelected, isEditing } = useSpreadsheetStore(
+    useShallow((s) => ({
+      value: s.cells[cellAddress(rowIndex, columnIndex)]?.v,
+      isAnchor: s.selection.anchor.row === rowIndex && s.selection.anchor.col === columnIndex,
+      isSelected: s.selection.ranges.some((r) => rangeContains(r, rowIndex, columnIndex)),
+      isEditing: s.editing?.row === rowIndex && s.editing?.col === columnIndex,
+    })),
   );
 
   const className = [
@@ -68,7 +64,9 @@ export function CellEditor({
   className: string;
 }) {
   const value = useSpreadsheetStore((s) => s.editing?.value ?? '');
+  const row = useSpreadsheetStore((s) => s.editing?.row ?? 0);
   const updateEditingValue = useSpreadsheetStore((s) => s.updateEditingValue);
+  const commitEditing = useSpreadsheetStore((s) => s.commitEditing);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
@@ -80,13 +78,14 @@ export function CellEditor({
   }, []);
 
   return (
-    <div {...ariaAttributes} className={className} style={style}>
+    <div {...ariaAttributes} aria-rowindex={row + 1} className={className} style={style}>
       <input
         ref={inputRef}
         type="text"
         className="cellforge-editor-input"
         value={value}
         onChange={(event) => updateEditingValue(event.target.value)}
+        onBlur={commitEditing}
       />
     </div>
   );

@@ -43,18 +43,11 @@ function findDataEdge(
   }
 
   if (startHas && !neighborHas) {
-    // Skip empties until the next non-empty (or hit the boundary).
-    while (inBounds(row, col) && !hasCellValue(cells, row, col)) {
-      row += step.dr;
-      col += step.dc;
-    }
-    if (!inBounds(row, col)) {
-      return {
-        row: clamp(row - step.dr, 0, rowCount - 1),
-        col: clamp(col - step.dc, 0, columnCount - 1),
-      };
-    }
-    return { row, col };
+    // Excel behaviour: jump straight to the grid edge in the direction of travel.
+    return {
+      row: clamp(start.row + step.dr * rowCount, 0, rowCount - 1),
+      col: clamp(start.col + step.dc * columnCount, 0, columnCount - 1),
+    };
   }
 
   // start is empty: skip empties until the first non-empty.

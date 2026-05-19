@@ -16,8 +16,7 @@ function MenuItem({
     <Menu.Item
       className="cellforge-menu-item"
       disabled={disabled ?? false}
-      onSelect={(event) => {
-        event.preventDefault();
+      onSelect={() => {
         onSelect();
       }}
     >

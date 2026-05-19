@@ -22,7 +22,7 @@ function isPrintableKey(event: KeyboardEvent<HTMLDivElement>): boolean {
   return event.key.length === 1;
 }
 
-export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: () => void) {
   const store = useSpreadsheetStore.getState();
   const editing = store.editing;
 
@@ -31,14 +31,17 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
       case 'Enter':
         event.preventDefault();
         commitAndMove(event.shiftKey ? 'up' : 'down');
+        focusRoot();
         return;
       case 'Tab':
         event.preventDefault();
         commitAndMove(event.shiftKey ? 'left' : 'right');
+        focusRoot();
         return;
       case 'Escape':
         event.preventDefault();
         store.cancelEditing();
+        focusRoot();
         return;
       default:
         return;

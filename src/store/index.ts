@@ -118,22 +118,17 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   },
 
   replaceData: (data) => {
+    const { rowCount, columnCount } = get();
     const nextCells: Record<CellRef, Cell> = {};
-    let maxRow = 0;
-    let maxCol = 0;
     data.forEach((row, rowIndex) => {
+      if (rowIndex >= rowCount) return;
       row.forEach((value, colIndex) => {
+        if (colIndex >= columnCount) return;
         if (value === undefined || value === null || value === '') return;
         nextCells[cellAddress(rowIndex, colIndex)] = { v: value };
-        if (rowIndex > maxRow) maxRow = rowIndex;
-        if (colIndex > maxCol) maxCol = colIndex;
       });
     });
-    set((state) => ({
-      cells: nextCells,
-      rowCount: Math.max(state.rowCount, maxRow + 1),
-      columnCount: Math.max(state.columnCount, maxCol + 1),
-    }));
+    set({ cells: nextCells });
   },
 
   // ─── dimensions ────────────────────────────────────────────────────────────
