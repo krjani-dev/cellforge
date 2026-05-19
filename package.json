@@ -1,6 +1,6 @@
 {
   "name": "cellforge",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Virtualized React spreadsheet grid with editing, selection, keyboard navigation, context menu, and row/column resizing. TypeScript-native, MIT licensed.",
   "license": "MIT",
   "type": "module",
