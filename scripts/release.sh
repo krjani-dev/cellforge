@@ -76,4 +76,4 @@ git push origin main
 git push origin "v$VERSION"
 
 echo ""
-echo "Released v$VERSION. Run 'npm publish' to push to npm."
+echo "Released v$VERSION. GitHub Actions will publish to npm automatically."
