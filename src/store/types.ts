@@ -30,6 +30,11 @@ export type SelectionMode = 'cell' | 'range' | 'row' | 'column' | 'all';
 export interface Selection {
   /** The cell the user clicked first; shift-extend keeps this fixed. */
   anchor: Coord;
+  /** The moving end of the active selection (opposite corner from anchor).
+   *  In 'cell' and 'range' modes the active range equals normalizeRange({start: anchor, end: focus}).
+   *  In 'row', 'column', and 'all' modes anchor/focus track the active cell only;
+   *  the actual selected cells are defined solely by `ranges`. */
+  focus: Coord;
   /** Visible highlighted rectangles. The LAST entry is the active range. */
   ranges: Range[];
   mode: SelectionMode;

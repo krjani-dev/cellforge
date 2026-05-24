@@ -43,6 +43,26 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: (
         store.cancelEditing();
         focusRoot();
         return;
+      case 'ArrowUp':
+        event.preventDefault();
+        commitAndMove('up');
+        focusRoot();
+        return;
+      case 'ArrowDown':
+        event.preventDefault();
+        commitAndMove('down');
+        focusRoot();
+        return;
+      case 'ArrowLeft':
+        event.preventDefault();
+        commitAndMove('left');
+        focusRoot();
+        return;
+      case 'ArrowRight':
+        event.preventDefault();
+        commitAndMove('right');
+        focusRoot();
+        return;
       default:
         return;
     }

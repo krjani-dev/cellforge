@@ -16,6 +16,7 @@ function resetStore() {
       colWidths: {},
       selection: {
         anchor: { row: 0, col: 0 },
+        focus: { row: 0, col: 0 },
         ranges: [{ start: { row: 0, col: 0 }, end: { row: 0, col: 0 } }],
         mode: 'cell',
       },
@@ -369,6 +370,35 @@ describe('cell editor', () => {
     fireEvent.keyDown(getGridRoot(), { key: 'Tab' });
     expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 5 });
     expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 0, col: 1 });
+  });
+
+  it('arrow keys inside the editor commit and continue navigation', () => {
+    render(<Spreadsheet />);
+    const root = getGridRoot();
+    act(() => useSpreadsheetStore.getState().selectCell(9, 4));
+    root.focus();
+    fireEvent.keyDown(root, { key: '1' });
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { value: '1)' } });
+    fireEvent.keyDown(input!, { key: 'ArrowDown' });
+    expect(useSpreadsheetStore.getState().cells['E10']).toEqual({ v: '1)' });
+    expect(useSpreadsheetStore.getState().selection.anchor).toEqual({ row: 10, col: 4 });
+    expect(useSpreadsheetStore.getState().editing).toBeNull();
+    expect(root).toHaveFocus();
+  });
+
+  it('blur after editing commits and restores focus to the grid root', async () => {
+    render(<Spreadsheet />);
+    const root = getGridRoot();
+    root.focus();
+    fireEvent.keyDown(root, { key: 'x' });
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { value: 'blurred' } });
+    fireEvent.blur(input!);
+    await waitFor(() => expect(root).toHaveFocus());
+    expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'blurred' });
   });
 
   it('Tab returns focus to the grid root after closing the editor', () => {

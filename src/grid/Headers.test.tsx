@@ -79,6 +79,7 @@ describe('header strip virtualization (browser-like dimensions)', () => {
         rowHeights: {},
         selection: {
           anchor: { row: 0, col: 0 },
+          focus: { row: 0, col: 0 },
           ranges: [{ start: { row: 0, col: 0 }, end: { row: 0, col: 0 } }],
           mode: 'cell',
         },

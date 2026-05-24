@@ -160,6 +160,10 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         row: Math.min(state.selection.anchor.row, rowMax),
         col: Math.min(state.selection.anchor.col, colMax),
       };
+      const focus = {
+        row: Math.min(state.selection.focus.row, rowMax),
+        col: Math.min(state.selection.focus.col, colMax),
+      };
       const ranges = state.selection.ranges.map((r) =>
         normalizeRange({
           start: { row: Math.min(r.start.row, rowMax), col: Math.min(r.start.col, colMax) },
@@ -176,7 +180,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         columnCount: cols,
         rowHeights: prunedRowHeights,
         colWidths: prunedColWidths,
-        selection: { ...state.selection, anchor, ranges },
+        selection: { ...state.selection, anchor, focus, ranges },
         editing,
       };
     });
@@ -252,6 +256,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: { row, col },
+        focus: { row, col },
         ranges: [singleCellRange(row, col)],
         mode: 'cell',
       },
@@ -264,6 +269,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: { ...range.start },
+        focus: { ...range.end },
         ranges: [normalized],
         mode: mode ?? deriveSelectionMode(normalized, rowCount, columnCount),
       },
@@ -276,6 +282,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: selection.anchor,
+        focus: { row, col },
         ranges: [...selection.ranges.slice(0, -1), range],
         mode: deriveSelectionMode(range, rowCount, columnCount),
       },
@@ -288,6 +295,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set((state) => ({
       selection: {
         anchor: { ...range.start },
+        focus: { ...range.end },
         ranges: [...state.selection.ranges, normalized],
         mode: deriveSelectionMode(normalized, rowCount, columnCount),
       },
@@ -299,6 +307,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: { row, col: 0 },
+        focus: { row, col: columnCount - 1 },
         ranges: [{ start: { row, col: 0 }, end: { row, col: columnCount - 1 } }],
         mode: 'row',
       },
@@ -310,6 +319,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: { row: 0, col },
+        focus: { row: rowCount - 1, col },
         ranges: [{ start: { row: 0, col }, end: { row: rowCount - 1, col } }],
         mode: 'column',
       },
@@ -317,10 +327,12 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   },
 
   selectAll: () => {
-    const { rowCount, columnCount } = get();
+    const { rowCount, columnCount, selection } = get();
+    const activeCell = selection.anchor;
     set({
       selection: {
-        anchor: { row: 0, col: 0 },
+        anchor: { ...activeCell },
+        focus: { ...activeCell },
         ranges: [{ start: { row: 0, col: 0 }, end: { row: rowCount - 1, col: columnCount - 1 } }],
         mode: 'all',
       },
@@ -345,6 +357,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       set({
         selection: {
           anchor,
+          focus: target,
           ranges: [...selection.ranges.slice(0, -1), range],
           mode: deriveSelectionMode(range, rowCount, columnCount),
         },
@@ -355,6 +368,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
     set({
       selection: {
         anchor: target,
+        focus: target,
         ranges: [singleCellRange(target.row, target.col)],
         mode: 'cell',
       },
@@ -376,6 +390,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       editing: { row, col, value },
       selection: {
         anchor: { row, col },
+        focus: { row, col },
         ranges: [singleCellRange(row, col)],
         mode: 'cell',
       },

@@ -90,6 +90,7 @@ export function shiftSelectionAfterMutation(
   return {
     ...sel,
     anchor: shiftCoord(sel.anchor, axis, at, delta, newLimit),
+    focus: shiftCoord(sel.focus, axis, at, delta, newLimit),
     ranges: sel.ranges.map((r) => shiftRange(r, axis, at, delta, newLimit)),
   };
 }
@@ -111,6 +112,7 @@ export function shiftEditingAfterMutation(
 export function emptyInitialSelection(): Selection {
   return {
     anchor: { row: 0, col: 0 },
+    focus: { row: 0, col: 0 },
     ranges: [singleCellRange(0, 0)],
     mode: 'cell',
   };

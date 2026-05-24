@@ -1,16 +1,19 @@
 import { useLayoutEffect, useRef } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, FocusEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSpreadsheetStore } from '../store';
 import { cellAddress, rangeContains } from '../store';
 
-type CellExtras = Record<string, never>;
+type CellExtras = {
+  onEditorBlur: (event: FocusEvent<HTMLInputElement>) => void;
+};
 
 export function Cell({
   rowIndex,
   columnIndex,
   style,
   ariaAttributes,
+  onEditorBlur,
 }: {
   rowIndex: number;
   columnIndex: number;
@@ -36,7 +39,14 @@ export function Cell({
     .join(' ');
 
   if (isEditing) {
-    return <CellEditor style={style} ariaAttributes={ariaAttributes} className={className} />;
+    return (
+      <CellEditor
+        style={style}
+        ariaAttributes={ariaAttributes}
+        className={className}
+        onBlur={onEditorBlur}
+      />
+    );
   }
 
   return (
@@ -58,10 +68,12 @@ export function CellEditor({
   style,
   ariaAttributes,
   className,
+  onBlur,
 }: {
   style: CSSProperties;
   ariaAttributes: { 'aria-colindex': number; role: 'gridcell' };
   className: string;
+  onBlur: (event: FocusEvent<HTMLInputElement>) => void;
 }) {
   const value = useSpreadsheetStore((s) => s.editing?.value ?? '');
   const row = useSpreadsheetStore((s) => s.editing?.row ?? 0);
@@ -85,7 +97,10 @@ export function CellEditor({
         className="cellforge-editor-input"
         value={value}
         onChange={(event) => updateEditingValue(event.target.value)}
-        onBlur={commitEditing}
+        onBlur={(event) => {
+          commitEditing();
+          onBlur(event);
+        }}
       />
     </div>
   );

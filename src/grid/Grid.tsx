@@ -9,7 +9,7 @@
  * numeric prop.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, MouseEvent } from 'react';
+import type { CSSProperties, FocusEvent, MouseEvent } from 'react';
 import { Grid as VirtualGrid, useGridRef } from 'react-window';
 import type { GridImperativeAPI } from 'react-window';
 import * as Menu from '@radix-ui/react-context-menu';
@@ -29,7 +29,9 @@ import { handleKeyDown } from './keyboard';
 const HEADER_HEIGHT = 24;
 const HEADER_WIDTH = 48;
 
-type CellExtras = Record<string, never>;
+type CellExtras = {
+  onEditorBlur: (event: FocusEvent<HTMLInputElement>) => void;
+};
 
 function readCoordFromDataset(el: HTMLElement | null): { row: number; col: number } | null {
   if (!el) return null;
@@ -110,18 +112,20 @@ export function Grid() {
     syncScrollbarGutters();
   }, [columnCount, colWidths, rowCount, rowHeights, syncScrollbarGutters]);
 
-  const activeCell = useSpreadsheetStore((s) => {
-    const range = s.selection.ranges[s.selection.ranges.length - 1];
-    return range?.end ?? s.selection.anchor;
-  });
+  const selectionMode = useSpreadsheetStore((s) => s.selection.mode);
+  const focusRow = useSpreadsheetStore((s) => s.selection.focus.row);
+  const focusCol = useSpreadsheetStore((s) => s.selection.focus.col);
   useEffect(() => {
+    // Column / row / all selections span the entire grid — there is no single
+    // cell to reveal, so leave the viewport exactly where it is.
+    if (selectionMode === 'column' || selectionMode === 'row' || selectionMode === 'all') return;
     gridRef.current?.scrollToCell({
-      rowIndex: activeCell.row,
-      columnIndex: activeCell.col,
+      rowIndex: focusRow,
+      columnIndex: focusCol,
       rowAlign: 'auto',
       columnAlign: 'auto',
     });
-  }, [activeCell.row, activeCell.col, gridRef]);
+  }, [focusRow, focusCol, selectionMode, gridRef]);
 
   useEffect(() => {
     const api = gridRef.current as GridImperativeAPI | null;
@@ -150,6 +154,19 @@ export function Grid() {
   const focusRoot = useCallback(() => {
     rootRef.current?.focus({ preventScroll: true });
   }, []);
+
+  const handleEditorBlur = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      const root = rootRef.current;
+      const nextFocus = event.relatedTarget;
+      if (!root || (nextFocus instanceof Node && root.contains(nextFocus))) return;
+      requestAnimationFrame(() => {
+        if (root.contains(document.activeElement)) return;
+        focusRoot();
+      });
+    },
+    [focusRoot],
+  );
 
   const handleCellsMouseDown = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
@@ -257,7 +274,10 @@ export function Grid() {
     selectAll();
   }, [selectAll]);
 
-  const cellProps = useMemo<CellExtras>(() => ({}), []);
+  const cellProps = useMemo<CellExtras>(
+    () => ({ onEditorBlur: handleEditorBlur }),
+    [handleEditorBlur],
+  );
 
   return (
     <div

@@ -23,6 +23,7 @@ beforeEach(() => {
       colWidths: {},
       selection: {
         anchor: { row: 0, col: 0 },
+        focus: { row: 0, col: 0 },
         ranges: [{ start: { row: 0, col: 0 }, end: { row: 0, col: 0 } }],
         mode: 'cell',
       },
@@ -506,6 +507,7 @@ describe('selectCell', () => {
     useSpreadsheetStore.getState().selectCell(3, 4);
     expect(useSpreadsheetStore.getState().selection).toEqual({
       anchor: { row: 3, col: 4 },
+      focus: { row: 3, col: 4 },
       ranges: [{ start: { row: 3, col: 4 }, end: { row: 3, col: 4 } }],
       mode: 'cell',
     });
@@ -573,6 +575,15 @@ describe('selectRow / selectColumn / selectAll', () => {
     const sel = useSpreadsheetStore.getState().selection;
     expect(sel.mode).toBe('all');
     expect(sel.ranges).toEqual([{ start: { row: 0, col: 0 }, end: { row: 99, col: 25 } }]);
+  });
+
+  it('selectAll preserves the active cell anchor', () => {
+    useSpreadsheetStore.getState().selectCell(3, 5);
+    useSpreadsheetStore.getState().selectAll();
+    const sel = useSpreadsheetStore.getState().selection;
+    expect(sel.anchor).toEqual({ row: 3, col: 5 });
+    expect(sel.focus).toEqual({ row: 3, col: 5 });
+    expect(sel.mode).toBe('all');
   });
 
   it('resetSelection returns to A1', () => {
@@ -643,6 +654,21 @@ describe('moveAnchor', () => {
     store.moveAnchor('right', { extend: true });
     const sel = useSpreadsheetStore.getState().selection;
     expect(sel.anchor).toEqual({ row: 3, col: 3 });
+    expect(sel.focus).toEqual({ row: 3, col: 4 });
+    expect(sel.ranges[0]).toEqual({ start: { row: 3, col: 3 }, end: { row: 3, col: 4 } });
+    expect(sel.mode).toBe('range');
+  });
+
+  it('extend moves from the current focus when shrinking toward previous cells', () => {
+    const store = useSpreadsheetStore.getState();
+    store.selectCell(3, 3);
+    store.moveAnchor('right', { extend: true });
+    store.moveAnchor('right', { extend: true });
+    store.moveAnchor('left', { extend: true });
+
+    const sel = useSpreadsheetStore.getState().selection;
+    expect(sel.anchor).toEqual({ row: 3, col: 3 });
+    expect(sel.focus).toEqual({ row: 3, col: 4 });
     expect(sel.ranges[0]).toEqual({ start: { row: 3, col: 3 }, end: { row: 3, col: 4 } });
     expect(sel.mode).toBe('range');
   });
@@ -828,6 +854,7 @@ describe('resetWorkbook', () => {
     expect(after.editing).toBeNull();
     expect(after.selection).toEqual({
       anchor: { row: 0, col: 0 },
+      focus: { row: 0, col: 0 },
       ranges: [{ start: { row: 0, col: 0 }, end: { row: 0, col: 0 } }],
       mode: 'cell',
     });

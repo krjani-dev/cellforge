@@ -79,8 +79,7 @@ export function navTarget(
   direction: NavDirection,
   pageSize: number,
 ): Coord {
-  const lastRange = state.selection.ranges[state.selection.ranges.length - 1];
-  const focus = lastRange ? lastRange.end : state.selection.anchor;
+  const focus = state.selection.focus;
 
   switch (direction) {
     case 'up':
