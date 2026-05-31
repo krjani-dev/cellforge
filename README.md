@@ -1,6 +1,6 @@
 # cellforge
 
-A lightweight, MIT-licensed, React-first spreadsheet grid for apps that need more control than a vendor widget allows.
+A lightweight React spreadsheet component for editable, virtualized data grids with keyboard navigation, range selection, resizing, and context menus.
 
 ## Current status
 

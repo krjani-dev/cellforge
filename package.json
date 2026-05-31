@@ -1,7 +1,7 @@
 {
   "name": "cellforge",
   "version": "0.0.4",
-  "description": "Virtualized React spreadsheet grid with editing, selection, keyboard navigation, context menu, and row/column resizing. TypeScript-native, MIT licensed.",
+  "description": "React spreadsheet component with virtualization, editing, selection, keyboard navigation, context menu, and row/column resizing.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -115,11 +115,15 @@
     "react",
     "react-spreadsheet",
     "spreadsheet",
+    "react-grid",
+    "spreadsheet-grid",
+    "data-table",
+    "excel-like",
+    "grid",
+    "table",
     "typescript",
     "data-grid",
-    "virtualized",
-    "open-source",
-    "mit-license"
+    "virtualized"
   ],
   "homepage": "https://github.com/krjani-dev/cellforge#readme",
   "repository": {
