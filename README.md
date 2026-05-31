@@ -20,19 +20,18 @@ pnpm add cellforge@dev
 
 ### Peer dependencies
 
-Install these alongside cellforge:
+Only `react` and `react-dom` must be installed by your app:
 
 ```bash
-npm install react react-dom react-window zustand @radix-ui/react-context-menu
+npm install react react-dom
 ```
 
 | Package | Required version |
 |---|---|
 | `react` | `>= 18.0.0` |
 | `react-dom` | `>= 18.0.0` |
-| `react-window` | `^2.2.7` |
-| `zustand` | `^4.5.5` |
-| `@radix-ui/react-context-menu` | `^2.2.16` |
+
+All other dependencies (`react-window`, `zustand`, `@radix-ui/react-context-menu`) are shipped as regular dependencies and installed automatically with cellforge.
 
 ### ESM-compatible toolchains
 

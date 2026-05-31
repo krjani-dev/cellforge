@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `react-window`, `zustand`, and `@radix-ui/react-context-menu` moved from `peerDependencies` to `dependencies` — they are now installed automatically and no longer need to be listed in your app's own dependencies
+
 ### CI
 - npm publish automated via GitHub Actions on version tag push
 
