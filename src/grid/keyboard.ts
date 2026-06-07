@@ -30,10 +30,14 @@ function hasSelectedEditorText(target: EventTarget | null): boolean {
 
 function clipboardActionForKey(key: string): (() => Promise<void>) | null {
   switch (key.toLowerCase()) {
-    case 'c': return copySelection;
-    case 'x': return cutSelection;
-    case 'v': return pasteClipboard;
-    default:  return null;
+    case 'c':
+      return copySelection;
+    case 'x':
+      return cutSelection;
+    case 'v':
+      return pasteClipboard;
+    default:
+      return null;
   }
 }
 
@@ -79,9 +83,12 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: (
         commitAndMove('right');
         focusRoot();
         return;
-      case 'c': case 'C':
-      case 'x': case 'X':
-      case 'v': case 'V': {
+      case 'c':
+      case 'C':
+      case 'x':
+      case 'X':
+      case 'v':
+      case 'V': {
         if (!ctrlOrMeta || hasSelectedEditorText(event.target)) return;
         const action = clipboardActionForKey(event.key);
         if (!action) return;

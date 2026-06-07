@@ -190,8 +190,8 @@ export async function pasteClipboard(): Promise<void> {
   if (pending?.mode === 'cut') {
     const isSameCut =
       pending.nonce !== undefined && clipboardNonce !== undefined
-        ? clipboardNonce === pending.nonce   // strong: nonce path (Chrome/Edge)
-        : false;                            // TSV equality is not reliable provenance; cut degrades to copy on Firefox/Safari
+        ? clipboardNonce === pending.nonce // strong: nonce path (Chrome/Edge)
+        : false; // TSV equality is not reliable provenance; cut degrades to copy on Firefox/Safari
     if (isSameCut) {
       // Erase source and write destination in one set() call to avoid a
       // mid-frame state where source is blank but destination not yet written.

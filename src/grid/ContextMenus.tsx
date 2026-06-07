@@ -33,18 +33,9 @@ function MenuSeparator() {
 function ClipboardMenuItems() {
   return (
     <>
-      <MenuItem
-        label="Copy"
-        onSelect={() => void copySelection().catch(console.error)}
-      />
-      <MenuItem
-        label="Cut"
-        onSelect={() => void cutSelection().catch(console.error)}
-      />
-      <MenuItem
-        label="Paste"
-        onSelect={() => void pasteClipboard().catch(console.error)}
-      />
+      <MenuItem label="Copy" onSelect={() => void copySelection().catch(console.error)} />
+      <MenuItem label="Cut" onSelect={() => void cutSelection().catch(console.error)} />
+      <MenuItem label="Paste" onSelect={() => void pasteClipboard().catch(console.error)} />
       <MenuSeparator />
     </>
   );

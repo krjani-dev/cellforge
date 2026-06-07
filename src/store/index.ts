@@ -102,7 +102,10 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       const pendingClipboard = invalidateClipboardOnWrite(state.pendingClipboard, row, col);
       if (value === null || value === '') {
         // Sparse cleanup: empty value drops the entry entirely.
-        if (!(ref in state.cells)) return pendingClipboard !== state.pendingClipboard ? { ...state, pendingClipboard } : state;
+        if (!(ref in state.cells))
+          return pendingClipboard !== state.pendingClipboard
+            ? { ...state, pendingClipboard }
+            : state;
         const { [ref]: _drop, ...rest } = state.cells;
         return { cells: rest, pendingClipboard };
       }
@@ -150,8 +153,10 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       const cancelsClipboard =
         pc !== null &&
         pc.mode === 'cut' &&
-        n.start.row <= pc.range.end.row && n.end.row >= pc.range.start.row &&
-        n.start.col <= pc.range.end.col && n.end.col >= pc.range.start.col;
+        n.start.row <= pc.range.end.row &&
+        n.end.row >= pc.range.start.row &&
+        n.start.col <= pc.range.end.col &&
+        n.end.col >= pc.range.start.col;
       return { cells: next, ...(cancelsClipboard ? { pendingClipboard: null } : {}) };
     });
   },
@@ -259,7 +264,10 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
           ...pc,
           range: normalizeRange({
             start: pc.range.start,
-            end: { row: Math.min(pc.range.end.row, rowMax), col: Math.min(pc.range.end.col, colMax) },
+            end: {
+              row: Math.min(pc.range.end.row, rowMax),
+              col: Math.min(pc.range.end.col, colMax),
+            },
           }),
         };
       })();
@@ -291,7 +299,13 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       rowCount: state.rowCount + 1,
       selection: shiftSelectionAfterMutation(state.selection, 'row', at, +1, state.rowCount),
       editing: shiftEditingAfterMutation(state.editing, 'row', at, +1),
-      pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'row', at, +1, state.rowCount),
+      pendingClipboard: shiftClipboardAfterMutation(
+        state.pendingClipboard,
+        'row',
+        at,
+        +1,
+        state.rowCount,
+      ),
     }));
   },
 
@@ -309,7 +323,13 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         rowCount: newRowCount,
         selection: shiftSelectionAfterMutation(state.selection, 'row', at, -1, newRowCount - 1),
         editing: shiftEditingAfterMutation(state.editing, 'row', at, -1),
-        pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'row', at, -1, newRowCount - 1),
+        pendingClipboard: shiftClipboardAfterMutation(
+          state.pendingClipboard,
+          'row',
+          at,
+          -1,
+          newRowCount - 1,
+        ),
       };
     });
   },
@@ -321,7 +341,13 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       columnCount: state.columnCount + 1,
       selection: shiftSelectionAfterMutation(state.selection, 'col', at, +1, state.columnCount),
       editing: shiftEditingAfterMutation(state.editing, 'col', at, +1),
-      pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'col', at, +1, state.columnCount),
+      pendingClipboard: shiftClipboardAfterMutation(
+        state.pendingClipboard,
+        'col',
+        at,
+        +1,
+        state.columnCount,
+      ),
     }));
   },
 
@@ -339,7 +365,13 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         columnCount: newColumnCount,
         selection: shiftSelectionAfterMutation(state.selection, 'col', at, -1, newColumnCount - 1),
         editing: shiftEditingAfterMutation(state.editing, 'col', at, -1),
-        pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'col', at, -1, newColumnCount - 1),
+        pendingClipboard: shiftClipboardAfterMutation(
+          state.pendingClipboard,
+          'col',
+          at,
+          -1,
+          newColumnCount - 1,
+        ),
       };
     });
   },

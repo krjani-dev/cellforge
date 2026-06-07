@@ -60,11 +60,7 @@ describe('copySelection', () => {
   });
 
   it('represents empty cells as empty string in TSV', async () => {
-    setState(
-      { [cellAddress(0, 0)]: { v: 'X' } },
-      { row: 0, col: 0 },
-      { row: 0, col: 1 },
-    );
+    setState({ [cellAddress(0, 0)]: { v: 'X' } }, { row: 0, col: 0 }, { row: 0, col: 1 });
     await copySelection();
     expect(writeText).toHaveBeenCalledWith('X\t');
   });
@@ -241,7 +237,7 @@ describe('pasteClipboard', () => {
     readText.mockResolvedValue(clipboardText);
     setState({ [cellAddress(0, 0)]: { v: 'S' } }, { row: 1, col: 0 });
     await pasteClipboard();
-    expect(cellValue(cellAddress(0, 0))).toBe('S');   // source untouched
+    expect(cellValue(cellAddress(0, 0))).toBe('S'); // source untouched
     expect(cellValue(cellAddress(1, 0))).toBe('S');
     expect(useSpreadsheetStore.getState().pendingClipboard).toBeNull();
   });
@@ -329,8 +325,6 @@ describe('pasteClipboard', () => {
     // The pending cut indicator is cleared regardless.
     expect(useSpreadsheetStore.getState().pendingClipboard).toBeNull();
   });
-
-
 });
 
 // ─── store-level clipboard invalidation ───────────────────────────────────────
@@ -475,13 +469,16 @@ describe('ClipboardItem nonce path', () => {
   it('clears cut source when the nonce in ClipboardItem matches', async () => {
     const nonce = 'test-nonce-abc';
     setState({ [cellAddress(0, 0)]: { v: 'hello' } }, { row: 1, col: 0 });
-    useSpreadsheetStore.setState({
-      pendingClipboard: {
-        range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
-        mode: 'cut',
-        nonce,
+    useSpreadsheetStore.setState(
+      {
+        pendingClipboard: {
+          range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+          mode: 'cut',
+          nonce,
+        },
       },
-    }, false);
+      false,
+    );
 
     mockRead.mockResolvedValue([makeClipboardItem('hello', nonce)]);
     await pasteClipboard();
@@ -494,13 +491,16 @@ describe('ClipboardItem nonce path', () => {
   it('does not clear cut source when another app pastes the same text without the nonce', async () => {
     const nonce = 'test-nonce-xyz';
     setState({ [cellAddress(0, 0)]: { v: 'hello' } }, { row: 1, col: 0 });
-    useSpreadsheetStore.setState({
-      pendingClipboard: {
-        range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
-        mode: 'cut',
-        nonce,
+    useSpreadsheetStore.setState(
+      {
+        pendingClipboard: {
+          range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+          mode: 'cut',
+          nonce,
+        },
       },
-    }, false);
+      false,
+    );
 
     // External app wrote 'hello' — no custom MIME nonce present.
     mockRead.mockResolvedValue([makeClipboardItem('hello')]);
@@ -514,13 +514,16 @@ describe('ClipboardItem nonce path', () => {
   it('cut-paste on the nonce path is atomic — source and destination update in one render', async () => {
     const nonce = 'test-nonce-atomic';
     setState({ [cellAddress(0, 0)]: { v: 'src' } }, { row: 1, col: 0 });
-    useSpreadsheetStore.setState({
-      pendingClipboard: {
-        range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
-        mode: 'cut',
-        nonce,
+    useSpreadsheetStore.setState(
+      {
+        pendingClipboard: {
+          range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+          mode: 'cut',
+          nonce,
+        },
       },
-    }, false);
+      false,
+    );
 
     const snapshots: Array<{ src: unknown; dst: unknown }> = [];
     const unsub = useSpreadsheetStore.subscribe((s) => {
@@ -554,13 +557,16 @@ describe('ClipboardItem nonce path', () => {
 
 describe('row/column mutation shifts or cancels the clipboard range', () => {
   function armCut(row: number, col: number) {
-    useSpreadsheetStore.setState({
-      pendingClipboard: {
-        range: { start: { row, col }, end: { row, col } },
-        mode: 'cut',
-        nonce: 'n',
+    useSpreadsheetStore.setState(
+      {
+        pendingClipboard: {
+          range: { start: { row, col }, end: { row, col } },
+          mode: 'cut',
+          nonce: 'n',
+        },
       },
-    }, false);
+      false,
+    );
   }
 
   function clipboardRange() {
@@ -688,23 +694,26 @@ describe('second cut replaces first cut', () => {
   it('cutting a second range discards the first nonce — only the second source is erased on paste', async () => {
     // ClipboardItem is unavailable in jsdom so we seed pendingClipboard
     // directly to simulate what writeSelection() does on the nonce path.
-    useSpreadsheetStore.setState({
-      cells: {
-        [cellAddress(0, 0)]: { v: 'A1' },
-        [cellAddress(1, 1)]: { v: 'B2' },
+    useSpreadsheetStore.setState(
+      {
+        cells: {
+          [cellAddress(0, 0)]: { v: 'A1' },
+          [cellAddress(1, 1)]: { v: 'B2' },
+        },
+        rowCount: 10,
+        columnCount: 10,
+        rowHeights: {},
+        colWidths: {},
+        editing: null,
+        // First cut armed on A1.
+        pendingClipboard: {
+          range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+          mode: 'cut',
+          nonce: 'first-nonce',
+        },
       },
-      rowCount: 10,
-      columnCount: 10,
-      rowHeights: {},
-      colWidths: {},
-      editing: null,
-      // First cut armed on A1.
-      pendingClipboard: {
-        range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
-        mode: 'cut',
-        nonce: 'first-nonce',
-      },
-    }, false);
+      false,
+    );
 
     // Second cut on B2 replaces the first.
     useSpreadsheetStore.getState().setPendingClipboard({
@@ -715,13 +724,15 @@ describe('second cut replaces first cut', () => {
 
     expect(useSpreadsheetStore.getState().pendingClipboard?.nonce).toBe('second-nonce');
     expect(useSpreadsheetStore.getState().pendingClipboard?.range).toEqual({
-      start: { row: 1, col: 1 }, end: { row: 1, col: 1 },
+      start: { row: 1, col: 1 },
+      end: { row: 1, col: 1 },
     });
 
     // Paste at C3 using the second nonce — only B2 must be erased, not A1.
     useSpreadsheetStore.setState({
       selection: {
-        anchor: { row: 2, col: 2 }, focus: { row: 2, col: 2 },
+        anchor: { row: 2, col: 2 },
+        focus: { row: 2, col: 2 },
         ranges: [{ start: { row: 2, col: 2 }, end: { row: 2, col: 2 } }],
         mode: 'cell',
       },
@@ -729,9 +740,9 @@ describe('second cut replaces first cut', () => {
     mockRead.mockResolvedValue([makeClipboardItem('B2', 'second-nonce')]);
     await pasteClipboard();
 
-    expect(cellValue(cellAddress(0, 0))).toBe('A1');      // first source untouched
+    expect(cellValue(cellAddress(0, 0))).toBe('A1'); // first source untouched
     expect(cellValue(cellAddress(1, 1))).toBeUndefined(); // second source erased
-    expect(cellValue(cellAddress(2, 2))).toBe('B2');      // pasted at C3
+    expect(cellValue(cellAddress(2, 2))).toBe('B2'); // pasted at C3
     expect(useSpreadsheetStore.getState().pendingClipboard).toBeNull();
   });
 });

@@ -742,9 +742,10 @@ export default function App() {
 
 function CutIndicatorFixture(args: ComponentProps<typeof Spreadsheet>) {
   useEffect(() => {
-    useSpreadsheetStore
-      .getState()
-      .setPendingClipboard({ mode: 'cut', range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } } });
+    useSpreadsheetStore.getState().setPendingClipboard({
+      mode: 'cut',
+      range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } },
+    });
     return () => useSpreadsheetStore.getState().setPendingClipboard(null);
   }, []);
   return <Spreadsheet {...args} />;
@@ -779,9 +780,10 @@ export const CutIndicator: Story = {
 
 function CopyIndicatorFixture(args: ComponentProps<typeof Spreadsheet>) {
   useEffect(() => {
-    useSpreadsheetStore
-      .getState()
-      .setPendingClipboard({ mode: 'copy', range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } } });
+    useSpreadsheetStore.getState().setPendingClipboard({
+      mode: 'copy',
+      range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } },
+    });
     return () => useSpreadsheetStore.getState().setPendingClipboard(null);
   }, []);
   return <Spreadsheet {...args} />;

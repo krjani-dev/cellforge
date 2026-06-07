@@ -87,12 +87,17 @@ export interface SpreadsheetState {
   // On Firefox/Safari cut degrades to copy (source not cleared) — TSV equality
   // is not reliable provenance so we never use it to authorise a destructive clear.
   pendingClipboard: { range: Range; mode: 'cut' | 'copy'; nonce?: string } | null;
-  setPendingClipboard: (clipboard: { range: Range; mode: 'cut' | 'copy'; nonce?: string } | null) => void;
+  setPendingClipboard: (
+    clipboard: { range: Range; mode: 'cut' | 'copy'; nonce?: string } | null,
+  ) => void;
 
   // ─── actions: cells ───
   setCellValue: (row: number, col: number, value: CellValue) => void;
   batchSetCells: (updates: Array<{ row: number; col: number; value: CellValue }>) => void;
-  moveCells: (eraseRange: Range, updates: Array<{ row: number; col: number; value: CellValue }>) => void;
+  moveCells: (
+    eraseRange: Range,
+    updates: Array<{ row: number; col: number; value: CellValue }>,
+  ) => void;
   clearCells: (range?: Range) => void;
   eraseCells: (range: Range) => void;
   replaceData: (data: ReadonlyArray<ReadonlyArray<CellValue | undefined | null>>) => void;
