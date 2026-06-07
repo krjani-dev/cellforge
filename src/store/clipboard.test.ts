@@ -249,15 +249,14 @@ describe('pasteClipboard', () => {
     expect(cellValue(cellAddress(0, 0))).toBe('keep');
   });
 
-  it('empty paste does not cancel an active copy indicator', async () => {
+  it('pasting empty clipboard clears the copy indicator', async () => {
     setState({ [cellAddress(0, 0)]: { v: 'Q' } }, { row: 0, col: 0 });
     await copySelection();
     expect(useSpreadsheetStore.getState().pendingClipboard).not.toBeNull();
 
     readText.mockResolvedValue('');
     await pasteClipboard();
-    expect(useSpreadsheetStore.getState().pendingClipboard).not.toBeNull();
-    expect(useSpreadsheetStore.getState().pendingClipboard?.mode).toBe('copy');
+    expect(useSpreadsheetStore.getState().pendingClipboard).toBeNull();
   });
 
   it('handles CRLF line endings from Excel/Windows clipboard without trailing blank row', async () => {

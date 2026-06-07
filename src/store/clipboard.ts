@@ -169,8 +169,17 @@ export async function pasteClipboard(): Promise<void> {
 
   // Re-read fresh state after the async gap — anchor/bounds may have changed.
   const fresh = useSpreadsheetStore.getState();
+  // Snapshot the pending reference before any async work so we can guard the
+  // final clear against a second Ctrl+X that may fire during the clipboard I/O.
+  const pendingAtStart = fresh.pendingClipboard;
 
-  if (values.length === 0) return;
+  if (values.length === 0) {
+    // Nothing to paste (e.g. empty cell copied), but still clear the indicator.
+    if (useSpreadsheetStore.getState().pendingClipboard === pendingAtStart) {
+      fresh.setPendingClipboard(null);
+    }
+    return;
+  }
 
   const { anchor } = fresh.selection;
 
@@ -183,10 +192,7 @@ export async function pasteClipboard(): Promise<void> {
     });
   });
 
-  const pending = fresh.pendingClipboard;
-  // Snapshot the pending reference before any async work so we can guard the
-  // final clear against a second Ctrl+X that may fire during the clipboard I/O.
-  const pendingAtStart = pending;
+  const pending = pendingAtStart;
   if (pending?.mode === 'cut') {
     const isSameCut =
       pending.nonce !== undefined && clipboardNonce !== undefined
