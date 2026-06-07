@@ -28,6 +28,7 @@ beforeEach(() => {
         mode: 'cell',
       },
       editing: null,
+      pendingClipboard: null,
     },
     false,
   );
@@ -781,6 +782,16 @@ describe('updateEditingValue / commitEditing / cancelEditing', () => {
     store.commitEditing();
     expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 123 });
     expect(useSpreadsheetStore.getState().editing).toBeNull();
+  });
+
+  it('commit normalises -0 to 0 so TSV round-trip is lossless', () => {
+    const store = useSpreadsheetStore.getState();
+    store.startEditing(0, 0);
+    store.updateEditingValue('-0');
+    store.commitEditing();
+    const v = useSpreadsheetStore.getState().cells['A1']?.v;
+    expect(v).toBe(0);
+    expect(Object.is(v, -0)).toBe(false);
   });
 
   it('commit preserves non-numeric strings', () => {

@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from 'react';
 import type { NavDirection } from '../store';
 import { useSpreadsheetStore } from '../store';
+import { copySelection, cutSelection, pasteClipboard } from '../store/clipboard';
 
 type DirectionAfterCommit = 'down' | 'up' | 'right' | 'left' | 'none';
 
@@ -22,11 +23,26 @@ function isPrintableKey(event: KeyboardEvent<HTMLDivElement>): boolean {
   return event.key.length === 1;
 }
 
+function hasSelectedEditorText(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLInputElement)) return false;
+  return (target.selectionStart ?? 0) !== (target.selectionEnd ?? 0);
+}
+
+function clipboardActionForKey(key: string): (() => Promise<void>) | null {
+  switch (key.toLowerCase()) {
+    case 'c': return copySelection;
+    case 'x': return cutSelection;
+    case 'v': return pasteClipboard;
+    default:  return null;
+  }
+}
+
 export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: () => void) {
   const store = useSpreadsheetStore.getState();
   const editing = store.editing;
 
   if (editing) {
+    const ctrlOrMeta = event.ctrlKey || event.metaKey;
     switch (event.key) {
       case 'Enter':
         event.preventDefault();
@@ -63,6 +79,18 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: (
         commitAndMove('right');
         focusRoot();
         return;
+      case 'c': case 'C':
+      case 'x': case 'X':
+      case 'v': case 'V': {
+        if (!ctrlOrMeta || hasSelectedEditorText(event.target)) return;
+        const action = clipboardActionForKey(event.key);
+        if (!action) return;
+        event.preventDefault();
+        store.commitEditing();
+        void action().catch(console.error);
+        focusRoot();
+        return;
+      }
       default:
         return;
     }
@@ -123,6 +151,7 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: (
       return;
     case 'Escape':
       event.preventDefault();
+      store.setPendingClipboard(null);
       store.resetSelection();
       return;
     default:
@@ -130,6 +159,14 @@ export function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, focusRoot: (
         event.preventDefault();
         store.selectAll();
         return;
+      }
+      if (ctrlOrMeta) {
+        const action = clipboardActionForKey(key);
+        if (action) {
+          event.preventDefault();
+          void action().catch(console.error);
+          return;
+        }
       }
       if (isPrintableKey(event)) {
         event.preventDefault();

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within, cleanup, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Spreadsheet } from './index';
 import type { SpreadsheetHandle } from './index';
@@ -21,6 +21,7 @@ function resetStore() {
         mode: 'cell',
       },
       editing: null,
+      pendingClipboard: null,
     },
     false,
   );
@@ -649,5 +650,167 @@ describe('context menu items', () => {
       expect(screen.getByRole('menuitem', { name: 'Select all' })).toBeInTheDocument();
     });
     expect(screen.getByRole('menuitem', { name: 'Clear all values' })).toBeInTheDocument();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Keyboard clipboard shortcuts
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('keyboard clipboard shortcuts', () => {
+  const writeText = vi.fn<() => Promise<void>>();
+  const readText = vi.fn<() => Promise<string>>();
+
+  beforeAll(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText, readText },
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  beforeEach(() => {
+    writeText.mockReset();
+    readText.mockReset();
+    writeText.mockResolvedValue(undefined);
+    readText.mockResolvedValue('');
+  });
+
+  it('ctrl+c writes the selection to the clipboard as TSV', async () => {
+    render(<Spreadsheet initialData={[['hello', 'world']]} />);
+    act(() =>
+      useSpreadsheetStore
+        .getState()
+        .selectRange({ start: { row: 0, col: 0 }, end: { row: 0, col: 1 } }),
+    );
+    fireEvent.keyDown(getGridRoot(), { key: 'c', ctrlKey: true });
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('hello\tworld'));
+  });
+
+  it('cmd+c (mac metaKey) also triggers copy', async () => {
+    render(<Spreadsheet initialData={[['mac']]} />);
+    fireEvent.keyDown(getGridRoot(), { key: 'c', metaKey: true });
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('mac'));
+  });
+
+  it('ctrl+x writes the selection to the clipboard and arms a cut indicator', async () => {
+    render(<Spreadsheet initialData={[['cut-me']]} />);
+    fireEvent.keyDown(getGridRoot(), { key: 'x', ctrlKey: true });
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('cut-me')));
+
+    // Cut indicator is armed; source clearing on paste requires the nonce path (Chrome/Edge).
+    expect(useSpreadsheetStore.getState().pendingClipboard).toEqual({
+      mode: 'cut',
+      range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+    });
+
+    // On TSV fallback path (this mock has no clipboard.write) paste copies without clearing source.
+    const clipboardText = (writeText.mock.lastCall as unknown as [string])[0];
+    readText.mockResolvedValue(clipboardText);
+    act(() => useSpreadsheetStore.getState().selectCell(1, 0));
+    fireEvent.keyDown(getGridRoot(), { key: 'v', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(useSpreadsheetStore.getState().cells['A2']).toEqual({ v: 'cut-me' });
+      expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'cut-me' }); // source untouched
+    });
+  });
+
+  it('ctrl+x while editing commits the current cell and arms a cut on that cell', async () => {
+    render(<Spreadsheet initialData={[['draft']]} />);
+    const root = getGridRoot();
+    const cell = firstCell(0, 0);
+    expect(cell).not.toBeNull();
+
+    fireEvent.doubleClick(cell!);
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { value: 'edited' } });
+    fireEvent.keyDown(input!, { key: 'x', ctrlKey: true });
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('edited')));
+    expect(useSpreadsheetStore.getState().editing).toBeNull();
+    expect(useSpreadsheetStore.getState().pendingClipboard).toEqual({
+      mode: 'cut',
+      range: { start: { row: 0, col: 0 }, end: { row: 0, col: 0 } },
+    });
+    expect(root).toHaveFocus();
+  });
+
+  it('ctrl+v pastes clipboard content at the active cell', async () => {
+    readText.mockResolvedValue('42\t99');
+    render(<Spreadsheet />);
+    fireEvent.keyDown(getGridRoot(), { key: 'v', ctrlKey: true });
+    await waitFor(() => {
+      expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 42 });
+      expect(useSpreadsheetStore.getState().cells['B1']).toEqual({ v: 99 });
+    });
+  });
+
+  it('clipboard error is caught and logged, not propagated as unhandled rejection', async () => {
+    writeText.mockRejectedValueOnce(new Error('permission denied'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<Spreadsheet initialData={[['x']]} />);
+    fireEvent.keyDown(getGridRoot(), { key: 'c', ctrlKey: true });
+    await waitFor(() => expect(consoleError).toHaveBeenCalled());
+    consoleError.mockRestore();
+  });
+
+  it('ctrl+v while editing (no text selected) commits the cell and pastes clipboard at the anchor', async () => {
+    readText.mockResolvedValue('pasted');
+    render(<Spreadsheet initialData={[['original']]} />);
+    const cell = firstCell(0, 0);
+    fireEvent.doubleClick(cell!);
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { value: 'draft' } });
+    // No text selected in the input — grid paste must fire
+    fireEvent.keyDown(input!, { key: 'v', ctrlKey: true });
+    await waitFor(() => {
+      expect(useSpreadsheetStore.getState().editing).toBeNull();
+      expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'pasted' });
+    });
+  });
+
+  it('ctrl+v while editing with text selected keeps the editor open (browser replaces selected text)', () => {
+    render(<Spreadsheet initialData={[['foobar']]} />);
+    const cell = firstCell(0, 0);
+    fireEvent.doubleClick(cell!);
+    const input = document.querySelector<HTMLInputElement>('.cellforge-editor-input');
+    expect(input).not.toBeNull();
+    // Simulate a text selection inside the input (selects "bar")
+    input!.setSelectionRange(3, 6);
+    fireEvent.keyDown(input!, { key: 'v', ctrlKey: true });
+    // Editor must stay open — browser handles the in-place replacement
+    expect(useSpreadsheetStore.getState().editing).not.toBeNull();
+    expect(readText).not.toHaveBeenCalled();
+  });
+
+  it('Enter/F2 does not disarm pendingClipboard — cut indicator stays armed through editing', async () => {
+    render(<Spreadsheet initialData={[['src']]} />);
+    fireEvent.keyDown(getGridRoot(), { key: 'x', ctrlKey: true });
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('src')));
+
+    // Open editor via Enter — cut must remain armed (matching Excel behaviour).
+    fireEvent.keyDown(getGridRoot(), { key: 'Enter' });
+    expect(useSpreadsheetStore.getState().pendingClipboard).not.toBeNull();
+
+    // On TSV fallback path paste copies without clearing source.
+    readText.mockResolvedValue('src');
+    act(() => useSpreadsheetStore.getState().selectCell(1, 0));
+    fireEvent.keyDown(getGridRoot(), { key: 'v', ctrlKey: true });
+    await waitFor(() => {
+      expect(useSpreadsheetStore.getState().cells['A2']).toEqual({ v: 'src' });
+      expect(useSpreadsheetStore.getState().cells['A1']).toEqual({ v: 'src' }); // source untouched on TSV path
+    });
+  });
+
+  it('Escape clears the cut/copy indicator (matching Excel behaviour)', async () => {
+    render(<Spreadsheet initialData={[['src']]} />);
+    fireEvent.keyDown(getGridRoot(), { key: 'x', ctrlKey: true });
+    await waitFor(() => expect(useSpreadsheetStore.getState().pendingClipboard).not.toBeNull());
+
+    fireEvent.keyDown(getGridRoot(), { key: 'Escape' });
+    expect(useSpreadsheetStore.getState().pendingClipboard).toBeNull();
   });
 });

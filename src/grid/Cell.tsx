@@ -20,17 +20,25 @@ export function Cell({
   style: CSSProperties;
   ariaAttributes: { 'aria-colindex': number; role: 'gridcell' };
 } & CellExtras) {
-  const { value, isAnchor, isSelected, isEditing } = useSpreadsheetStore(
+  const { value, isAnchor, isSelected, isEditing, isCut, isCopy } = useSpreadsheetStore(
     useShallow((s) => ({
       value: s.cells[cellAddress(rowIndex, columnIndex)]?.v,
       isAnchor: s.selection.anchor.row === rowIndex && s.selection.anchor.col === columnIndex,
       isSelected: s.selection.ranges.some((r) => rangeContains(r, rowIndex, columnIndex)),
       isEditing: s.editing?.row === rowIndex && s.editing?.col === columnIndex,
+      isCut:
+        s.pendingClipboard?.mode === 'cut' &&
+        rangeContains(s.pendingClipboard.range, rowIndex, columnIndex),
+      isCopy:
+        s.pendingClipboard?.mode === 'copy' &&
+        rangeContains(s.pendingClipboard.range, rowIndex, columnIndex),
     })),
   );
 
   const className = [
     'cellforge-cell',
+    isCut && 'cellforge-cell-cut',
+    isCopy && 'cellforge-cell-copy',
     isSelected && !isAnchor && 'cellforge-cell-selected',
     isAnchor && 'cellforge-cell-anchor',
     isEditing && 'cellforge-cell-editing',

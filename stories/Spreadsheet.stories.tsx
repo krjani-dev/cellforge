@@ -1,8 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Spreadsheet } from '../src/index';
 import type { CellValue, SpreadsheetHandle } from '../src/index';
+import { useSpreadsheetStore } from '../src/store';
 
 const meta: Meta<typeof Spreadsheet> = {
   title: 'Components/Spreadsheet',
@@ -60,7 +62,7 @@ dragging the bottom edge of a row header. Double-click a handle to reset.
 export default meta;
 type Story = StoryObj<typeof Spreadsheet>;
 
-const FILL_VIEWPORT: React.CSSProperties = {
+const FILL_VIEWPORT: CSSProperties = {
   width: '100vw',
   height: '100vh',
 };
@@ -734,6 +736,81 @@ export default function App() {
   render: (args) => (
     <div style={{ width: 480, height: 220 }}>
       <Spreadsheet {...args} />
+    </div>
+  ),
+};
+
+function CutIndicatorFixture(args: ComponentProps<typeof Spreadsheet>) {
+  useEffect(() => {
+    useSpreadsheetStore
+      .getState()
+      .setPendingClipboard({ mode: 'cut', range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } } });
+    return () => useSpreadsheetStore.getState().setPendingClipboard(null);
+  }, []);
+  return <Spreadsheet {...args} />;
+}
+
+export const CutIndicator: Story = {
+  args: {
+    rows: 6,
+    columns: 6,
+    initialData: [
+      ['Apple', 'Banana', 'Cherry', 'Date', 'Fig', 'Grape'],
+      [10, 20, 30, 40, 50, 60],
+      [11, 21, 31, 41, 51, 61],
+      [12, 22, 32, 42, 52, 62],
+    ],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Cells B2–C3 are pre-set as the pending cut range to show the marching-ants indicator. ' +
+          'In normal use this appears after Ctrl/Cmd+X and clears on the first Ctrl/Cmd+V.',
+      },
+    },
+  },
+  render: (args) => (
+    <div style={{ width: 520, height: 280 }}>
+      <CutIndicatorFixture {...args} />
+    </div>
+  ),
+};
+
+function CopyIndicatorFixture(args: ComponentProps<typeof Spreadsheet>) {
+  useEffect(() => {
+    useSpreadsheetStore
+      .getState()
+      .setPendingClipboard({ mode: 'copy', range: { start: { row: 1, col: 1 }, end: { row: 2, col: 2 } } });
+    return () => useSpreadsheetStore.getState().setPendingClipboard(null);
+  }, []);
+  return <Spreadsheet {...args} />;
+}
+
+export const CopyIndicator: Story = {
+  args: {
+    rows: 6,
+    columns: 6,
+    initialData: [
+      ['Apple', 'Banana', 'Cherry', 'Date', 'Fig', 'Grape'],
+      [10, 20, 30, 40, 50, 60],
+      [11, 21, 31, 41, 51, 61],
+      [12, 22, 32, 42, 52, 62],
+    ],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Cells B2–C3 are pre-set as the pending copy range to show the marching-ants indicator. ' +
+          'In normal use this appears after Ctrl/Cmd+C and persists so the range can be pasted multiple times; ' +
+          'it clears when another copy or cut is started, or when data is replaced.',
+      },
+    },
+  },
+  render: (args) => (
+    <div style={{ width: 520, height: 280 }}>
+      <CopyIndicatorFixture {...args} />
     </div>
   ),
 };

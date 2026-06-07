@@ -155,6 +155,7 @@
 }
 
 .cellforge-cell {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -169,13 +170,94 @@
   cursor: cell;
 }
 
+/* Each rail shifts by one full tile (8px) so the dashes march smoothly.
+   Top/right march clockwise (+8px); bottom/left counter-shift (-8px). */
+@keyframes cf-march {
+  to {
+    background-position:
+      8px 0,
+      100% 8px,
+      -8px 100%,
+      0 -8px;
+  }
+}
+
+/* Shared marching-ants border — cut and copy both use this. Set --cf-ant-color before use. */
+.cellforge-cell-cut::before,
+.cellforge-cell-copy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(90deg, var(--cf-ant-color) 0 5px, transparent 5px 8px),
+    repeating-linear-gradient(180deg, var(--cf-ant-color) 0 5px, transparent 5px 8px),
+    repeating-linear-gradient(90deg, var(--cf-ant-color) 0 5px, transparent 5px 8px),
+    repeating-linear-gradient(180deg, var(--cf-ant-color) 0 5px, transparent 5px 8px);
+  background-size:
+    8px 2px,
+    2px 8px,
+    8px 2px,
+    2px 8px;
+  background-position:
+    0 0,
+    100% 0,
+    0 100%,
+    0 0;
+  background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
+  animation: cf-march 0.45s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Cut and copy use the same appearance — matches Excel / Google Sheets behaviour. */
+.cellforge-cell-cut,
+.cellforge-cell-copy {
+  --cf-ant-color: #1a73e8;
+  background-color: rgba(26, 115, 232, 0.025);
+}
+
+.cellforge-cell-cut.cellforge-cell-selected,
+.cellforge-cell-cut.cellforge-cell-anchor,
+.cellforge-cell-copy.cellforge-cell-selected,
+.cellforge-cell-copy.cellforge-cell-anchor {
+  background-color: rgba(26, 115, 232, 0.04);
+}
+
 .cellforge-cell-selected {
-  background: rgba(9, 105, 218, 0.08);
+  background-color: rgba(9, 105, 218, 0.08);
 }
 
 .cellforge-cell-anchor {
-  /* Inner ring so the anchor is visible without growing the cell box. */
-  box-shadow: inset 0 0 0 2px var(--cf-color-focus);
+  /* Offset the active-cell ring inward so it stays distinct from clipboard rails. */
+  box-shadow:
+    inset 0 0 0 1px var(--cf-color-bg),
+    inset 0 0 0 3px var(--cf-color-focus);
+}
+
+.cellforge-cell-cut.cellforge-cell-anchor,
+.cellforge-cell-copy.cellforge-cell-anchor {
+  box-shadow:
+    inset 0 0 0 1px var(--cf-color-bg),
+    inset 0 0 0 2px rgba(26, 115, 232, 0.3);
+}
+
+.cellforge-cell-anchor::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cf-color-focus);
+  box-shadow: 0 0 0 2px var(--cf-color-bg);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cellforge-cell-cut.cellforge-cell-anchor::after,
+.cellforge-cell-copy.cellforge-cell-anchor::after {
+  background: var(--cf-ant-color);
 }
 
 .cellforge-cell-editing {
@@ -193,6 +275,13 @@
   color: var(--cf-color-fg);
   font: inherit;
   outline: none;
+}
+
+.cellforge-cell-editing.cellforge-cell-anchor > .cellforge-editor-input {
+  /* Mirror the anchor ring while the editor input covers the cell. */
+  box-shadow:
+    inset 0 0 0 1px var(--cf-color-bg),
+    inset 0 0 0 3px var(--cf-color-focus);
 }
 
 .cellforge-col-header,

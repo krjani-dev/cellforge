@@ -15,7 +15,8 @@
  */
 import { create } from 'zustand';
 
-import type { CellValue, Cell, CellRef, SpreadsheetState } from './types';
+import type { Cell, CellRef, Range, SpreadsheetState } from './types';
+import { coerceValue } from './coerce';
 import { cellAddress, normalizeRange, parseCellAddress, rangeContains } from './addressing';
 import {
   cellRange,
@@ -25,9 +26,32 @@ import {
   rekeyCells,
   shiftSelectionAfterMutation,
   shiftEditingAfterMutation,
+  shiftCutRangeAfterMutation,
   emptyInitialSelection,
 } from './selection';
 import { navTarget } from './navigation';
+
+function shiftClipboardAfterMutation(
+  clipboard: { range: Range; mode: 'cut' | 'copy'; nonce?: string } | null,
+  axis: 'row' | 'col',
+  at: number,
+  delta: number,
+  newLimit: number,
+): { range: Range; mode: 'cut' | 'copy'; nonce?: string } | null {
+  if (!clipboard) return null;
+  const range = shiftCutRangeAfterMutation(clipboard.range, axis, at, delta, newLimit);
+  if (!range) return null;
+  return { ...clipboard, range };
+}
+
+function invalidateClipboardOnWrite(
+  clipboard: SpreadsheetState['pendingClipboard'],
+  row: number,
+  col: number,
+): SpreadsheetState['pendingClipboard'] {
+  if (!clipboard || clipboard.mode !== 'cut') return clipboard;
+  return rangeContains(clipboard.range, row, col) ? null : clipboard;
+}
 
 // Backward-compat re-exports so existing consumers continue to work unchanged.
 export type {
@@ -60,19 +84,6 @@ export {
 const DEFAULT_ROW_COUNT = 100;
 const DEFAULT_COLUMN_COUNT = 26;
 
-function coerceCellInput(value: string): CellValue {
-  if (value === '') return null;
-  // Try numeric coercion. Bare digits / decimals / signs / scientific notation become numbers;
-  // everything else stays as a string. Date/formula handling is a future enhancement.
-  if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(value)) {
-    const n = Number(value);
-    if (Number.isFinite(n)) return n;
-  }
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return value;
-}
-
 export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   cells: {},
   rowCount: DEFAULT_ROW_COUNT,
@@ -81,31 +92,98 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   colWidths: {},
   selection: emptyInitialSelection(),
   editing: null,
+  pendingClipboard: null,
 
   // ─── cells ─────────────────────────────────────────────────────────────────
 
   setCellValue: (row, col, value) => {
     set((state) => {
       const ref = cellAddress(row, col);
+      const pendingClipboard = invalidateClipboardOnWrite(state.pendingClipboard, row, col);
       if (value === null || value === '') {
         // Sparse cleanup: empty value drops the entry entirely.
-        if (!(ref in state.cells)) return state;
+        if (!(ref in state.cells)) return pendingClipboard !== state.pendingClipboard ? { ...state, pendingClipboard } : state;
         const { [ref]: _drop, ...rest } = state.cells;
-        return { cells: rest };
+        return { cells: rest, pendingClipboard };
       }
       return {
         cells: { ...state.cells, [ref]: { ...state.cells[ref], v: value } },
+        pendingClipboard,
       };
     });
   },
 
+  batchSetCells: (updates) => {
+    set((state) => {
+      if (updates.length === 0) return state;
+      const cells = { ...state.cells };
+      let pendingClipboard = state.pendingClipboard;
+      for (const { row, col, value } of updates) {
+        pendingClipboard = invalidateClipboardOnWrite(pendingClipboard, row, col);
+        const ref = cellAddress(row, col);
+        if (value === null || value === '') {
+          delete cells[ref];
+        } else {
+          cells[ref] = { ...cells[ref], v: value };
+        }
+      }
+      return { cells, pendingClipboard };
+    });
+  },
+
   clearCells: (range) => {
-    const target = range ?? get().selection.ranges[get().selection.ranges.length - 1];
+    const { ranges } = get().selection;
+    const target = range ?? ranges[ranges.length - 1];
     if (!target) return;
     const n = normalizeRange(target);
     set((state) => {
       // Iterate stored cells (O(stored)) instead of every coordinate in the range
       // (O(range)), so clearing a large sparse selection stays fast.
+      const toDelete = Object.keys(state.cells).filter((ref) => {
+        const coord = parseCellAddress(ref as CellRef);
+        return coord !== null && rangeContains(n, coord.row, coord.col);
+      });
+      if (toDelete.length === 0) return state;
+      const next = { ...state.cells };
+      for (const ref of toDelete) delete next[ref as CellRef];
+      const pc = state.pendingClipboard;
+      const cancelsClipboard =
+        pc !== null &&
+        pc.mode === 'cut' &&
+        n.start.row <= pc.range.end.row && n.end.row >= pc.range.start.row &&
+        n.start.col <= pc.range.end.col && n.end.col >= pc.range.start.col;
+      return { cells: next, ...(cancelsClipboard ? { pendingClipboard: null } : {}) };
+    });
+  },
+
+  moveCells: (eraseRange, updates) => {
+    // Intentionally does not run invalidateClipboardOnWrite: the caller
+    // (pasteClipboard) has already consumed and will clear pendingClipboard.
+    // A second pending cut (different range) must not be disturbed here.
+    const n = normalizeRange(eraseRange);
+    set((state) => {
+      const cells = { ...state.cells };
+      for (const ref of Object.keys(cells)) {
+        const coord = parseCellAddress(ref as CellRef);
+        if (coord !== null && rangeContains(n, coord.row, coord.col)) {
+          delete cells[ref as CellRef];
+        }
+      }
+      for (const { row, col, value } of updates) {
+        const ref = cellAddress(row, col);
+        if (value === null || value === '') {
+          delete cells[ref];
+        } else {
+          cells[ref] = { ...cells[ref], v: value };
+        }
+      }
+      return { cells };
+    });
+  },
+
+  eraseCells: (range) => {
+    const n = normalizeRange(range);
+    set((state) => {
       const toDelete = Object.keys(state.cells).filter((ref) => {
         const coord = parseCellAddress(ref as CellRef);
         return coord !== null && rangeContains(n, coord.row, coord.col);
@@ -128,7 +206,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         nextCells[cellAddress(rowIndex, colIndex)] = { v: value };
       });
     });
-    set({ cells: nextCells });
+    set({ cells: nextCells, pendingClipboard: null });
   },
 
   // ─── dimensions ────────────────────────────────────────────────────────────
@@ -174,6 +252,17 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         state.editing && state.editing.row <= rowMax && state.editing.col <= colMax
           ? state.editing
           : null;
+      const pendingClipboard = (() => {
+        const pc = state.pendingClipboard;
+        if (!pc || pc.range.start.row > rowMax || pc.range.start.col > colMax) return null;
+        return {
+          ...pc,
+          range: normalizeRange({
+            start: pc.range.start,
+            end: { row: Math.min(pc.range.end.row, rowMax), col: Math.min(pc.range.end.col, colMax) },
+          }),
+        };
+      })();
       return {
         cells: prunedCells,
         rowCount: rows,
@@ -182,6 +271,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         colWidths: prunedColWidths,
         selection: { ...state.selection, anchor, focus, ranges },
         editing,
+        pendingClipboard,
       };
     });
   },
@@ -201,6 +291,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       rowCount: state.rowCount + 1,
       selection: shiftSelectionAfterMutation(state.selection, 'row', at, +1, state.rowCount),
       editing: shiftEditingAfterMutation(state.editing, 'row', at, +1),
+      pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'row', at, +1, state.rowCount),
     }));
   },
 
@@ -218,6 +309,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         rowCount: newRowCount,
         selection: shiftSelectionAfterMutation(state.selection, 'row', at, -1, newRowCount - 1),
         editing: shiftEditingAfterMutation(state.editing, 'row', at, -1),
+        pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'row', at, -1, newRowCount - 1),
       };
     });
   },
@@ -229,6 +321,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       columnCount: state.columnCount + 1,
       selection: shiftSelectionAfterMutation(state.selection, 'col', at, +1, state.columnCount),
       editing: shiftEditingAfterMutation(state.editing, 'col', at, +1),
+      pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'col', at, +1, state.columnCount),
     }));
   },
 
@@ -246,6 +339,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
         columnCount: newColumnCount,
         selection: shiftSelectionAfterMutation(state.selection, 'col', at, -1, newColumnCount - 1),
         editing: shiftEditingAfterMutation(state.editing, 'col', at, -1),
+        pendingClipboard: shiftClipboardAfterMutation(state.pendingClipboard, 'col', at, -1, newColumnCount - 1),
       };
     });
   },
@@ -404,7 +498,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   commitEditing: () => {
     const { editing } = get();
     if (!editing) return;
-    get().setCellValue(editing.row, editing.col, coerceCellInput(editing.value));
+    get().setCellValue(editing.row, editing.col, coerceValue(editing.value));
     set({ editing: null });
   },
 
@@ -413,6 +507,8 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   },
 
   // ─── workbook ─────────────────────────────────────────────────────────────
+
+  setPendingClipboard: (clipboard) => set({ pendingClipboard: clipboard }),
 
   resetWorkbook: () => {
     set({
@@ -423,6 +519,7 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
       colWidths: {},
       selection: emptyInitialSelection(),
       editing: null,
+      pendingClipboard: null,
     });
   },
 }));

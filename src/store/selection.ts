@@ -109,6 +109,22 @@ export function shiftEditingAfterMutation(
   return editing;
 }
 
+export function shiftCutRangeAfterMutation(
+  range: Range | null,
+  axis: 'row' | 'col',
+  at: number,
+  delta: number,
+  newLimit: number,
+): Range | null {
+  if (!range) return null;
+  // If a row/col being deleted falls inside the cut range, the source is gone — cancel the cut.
+  if (delta < 0 && at >= range.start[axis] && at <= range.end[axis]) return null;
+  return normalizeRange({
+    start: shiftCoord(range.start, axis, at, delta, newLimit),
+    end: shiftCoord(range.end, axis, at, delta, newLimit),
+  });
+}
+
 export function emptyInitialSelection(): Selection {
   return {
     anchor: { row: 0, col: 0 },

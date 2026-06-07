@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { ElementRef } from 'react';
 import * as Menu from '@radix-ui/react-context-menu';
 import { useSpreadsheetStore } from '../store';
+import { copySelection, cutSelection, pasteClipboard } from '../store/clipboard';
 
 function MenuItem({
   label,
@@ -29,11 +30,32 @@ function MenuSeparator() {
   return <Menu.Separator className="cellforge-menu-separator" />;
 }
 
+function ClipboardMenuItems() {
+  return (
+    <>
+      <MenuItem
+        label="Copy"
+        onSelect={() => void copySelection().catch(console.error)}
+      />
+      <MenuItem
+        label="Cut"
+        onSelect={() => void cutSelection().catch(console.error)}
+      />
+      <MenuItem
+        label="Paste"
+        onSelect={() => void pasteClipboard().catch(console.error)}
+      />
+      <MenuSeparator />
+    </>
+  );
+}
+
 export type MenuContentRef = ElementRef<typeof Menu.Content>;
 
 export const CellMenuContent = forwardRef<MenuContentRef>((_, ref) => {
   return (
     <Menu.Content ref={ref} className="cellforge-menu" onClick={(e) => e.stopPropagation()}>
+      <ClipboardMenuItems />
       <MenuItem label="Clear values" onSelect={() => useSpreadsheetStore.getState().clearCells()} />
       <MenuSeparator />
       <MenuItem
@@ -86,6 +108,7 @@ export const CellMenuContent = forwardRef<MenuContentRef>((_, ref) => {
 export const RowMenuContent = forwardRef<MenuContentRef>((_, ref) => {
   return (
     <Menu.Content ref={ref} className="cellforge-menu" onClick={(e) => e.stopPropagation()}>
+      <ClipboardMenuItems />
       <MenuItem
         label="Insert row above"
         onSelect={() => {
@@ -116,6 +139,7 @@ export const RowMenuContent = forwardRef<MenuContentRef>((_, ref) => {
 export const ColumnMenuContent = forwardRef<MenuContentRef>((_, ref) => {
   return (
     <Menu.Content ref={ref} className="cellforge-menu" onClick={(e) => e.stopPropagation()}>
+      <ClipboardMenuItems />
       <MenuItem
         label="Insert column left"
         onSelect={() => {
