@@ -7,11 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] – 2026-06-07
+
+### Added
+- **Clipboard** — copy, cut, and paste selections as RFC TSV via the Async Clipboard API
+  - `Ctrl+C` / `Ctrl+X` / `Ctrl+V` keyboard shortcuts; Copy / Cut / Paste context-menu items
+  - Marching-ants selection ring while a copy or cut is pending; cancelled by Escape, source-range overwrite, or `clearCells` over a pending cut source
+  - Atomic cut: source cells cleared and destination written in one state update — no intermediate blank-grid frame
+  - Out-of-band nonce (`web application/x-cellforge-nonce`) keeps the `text/plain` payload clean for every external app while preserving same-session cut provenance on Chrome/Edge
+  - Graceful degradation on Firefox/Safari: falls back to `writeText`/`readText`; paste is always non-destructive when provenance cannot be confirmed
+  - Copy indicator persists for repeated paste (Excel behaviour); cut indicator cleared only after a confirmed same-session atomic paste
+  - RFC-quoted TSV: enters quoted mode only when `"` opens a field; mid-field quotes treated as literals to match Excel/Google Sheets output
+  - `-0` normalised to `0` during TSV encode/decode to prevent silent round-trip mutation
+
 ### Changed
-- `react-window`, `zustand`, and `@radix-ui/react-context-menu` moved from `peerDependencies` to `dependencies` — they are now installed automatically and no longer need to be listed in your app's own dependencies
+- `react-window`, `zustand`, and `@radix-ui/react-context-menu` moved from `peerDependencies` to `dependencies` — installed automatically, no longer need to be listed in your app's own `package.json`
 
 ### CI
-- npm publish automated via GitHub Actions on version tag push
+- npm publish to the npm registry automated via GitHub Actions on `v*` tag push
 
 ## [0.0.4] – 2026-05-24
 
@@ -58,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial project scaffold
 
+[Unreleased]: https://github.com/krjani-dev/cellforge/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/krjani-dev/cellforge/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/krjani-dev/cellforge/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/krjani-dev/cellforge/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/krjani-dev/cellforge/compare/v0.0.1...v0.0.2

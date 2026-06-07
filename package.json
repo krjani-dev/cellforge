@@ -109,7 +109,7 @@
   "publishConfig": {
     "access": "public",
     "provenance": true,
-    "tag": "dev"
+    "tag": "latest"
   },
   "keywords": [
     "react",
