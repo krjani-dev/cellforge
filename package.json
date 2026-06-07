@@ -1,6 +1,6 @@
 {
   "name": "cellforge",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "React spreadsheet component with virtualization, editing, selection, keyboard navigation, context menu, and row/column resizing.",
   "license": "MIT",
   "type": "module",
